@@ -6,6 +6,8 @@
   "scripts": {
     "watch": "webpack --watch --progress --colors --config ./webpack.config.dev.js --display-error-details",
     "build:js": "webpack                 --colors --config ./webpack.config.js     --display-error-details",
+    "build:html": "cpx \"./src_html/**/{*.html,*.js,*.css}\" ./bin",
+    "build": "npm-run-all build:html build:js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "banban525",
@@ -17,9 +19,11 @@
     "@types/react": "^15.0.29",
     "@types/react-dom": "^15.5.0",
     "@types/react-tap-event-plugin": "0.0.30",
+    "cpx": "^1.5.0",
     "css-loader": "^0.28.4",
     "file-loader": "^0.11.2",
     "material-ui": "^0.18.3",
+    "npm-run-all": "^4.0.2",
     "object-assign": "^4.1.1",
     "react": "^15.6.1",
     "react-dom": "^15.6.1",

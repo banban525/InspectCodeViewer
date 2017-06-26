@@ -8,7 +8,7 @@ import * as injectTapEventPlugin from "react-tap-event-plugin";
 import { SelectableList } from "./SelectableList";
 import Subheader from 'material-ui/Subheader';
 import { ListItem } from "material-ui/List";
-import Iframe from '../node_modules/react-iframe/index.js';
+import Iframe from '../node_modules/react-iframe/index.min.js';
 import * as objectAssign from 'object-assign';
 import darkBaseTheme from 'material-ui/styles/baseThemes/darkBaseTheme';
 import lightBaseTheme from 'material-ui/styles/baseThemes/lightBaseTheme';
