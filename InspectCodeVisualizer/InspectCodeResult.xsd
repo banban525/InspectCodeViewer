@@ -1,0 +1,67 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xs:schema
+  attributeFormDefault="unqualified"
+  elementFormDefault="qualified"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:element name="Report">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="Information">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="Solution" type="xs:string" />
+              <xs:element name="InspectionScope">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="Element" type="xs:string" />
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="IssueTypes">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element maxOccurs="unbounded" name="IssueType">
+                <xs:complexType>
+                  <xs:attribute name="Id" type="xs:string" use="required" />
+                  <xs:attribute name="Category" type="xs:string" use="required" />
+                  <xs:attribute name="CategoryId" type="xs:string" use="required" />
+                  <xs:attribute name="Description" type="xs:string" use="required" />
+                  <xs:attribute name="Severity" type="xs:string" use="required" />
+                  <xs:attribute name="WikiUrl" type="xs:string" use="optional" />
+                  <xs:attribute name="SubCategory" type="xs:string" use="optional" />
+                  <xs:attribute name="Global" type="xs:string" use="optional" />
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="Issues">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element maxOccurs="unbounded" name="Project">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element maxOccurs="unbounded" name="Issue">
+                      <xs:complexType>
+                        <xs:attribute name="TypeId" type="xs:string" use="required" />
+                        <xs:attribute name="File" type="xs:string" use="required" />
+                        <xs:attribute name="Offset" type="xs:string" use="required" />
+                        <xs:attribute name="Message" type="xs:string" use="required" />
+                        <xs:attribute name="Line" type="xs:unsignedShort" use="optional" />
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                  <xs:attribute name="Name" type="xs:string" use="required" />
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+      <xs:attribute name="ToolsVersion" type="xs:string" use="required" />
+    </xs:complexType>
+  </xs:element>
+</xs:schema>
