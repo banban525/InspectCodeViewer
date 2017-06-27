@@ -36,9 +36,12 @@ namespace InspectCodeVisualizer
 
             var issues = report.Issues
                 .SelectMany(_ => _.Issue.Select(issue => new {issue, Project = _.Name}))
-                .Select(_ => new Issue("", _.issue.TypeId, _.issue.File, _.issue.Offset, _.issue.Message,_.issue.Line, _.Project))
-                .Select(_ => new Issue(CreateId(_, programBaseDir), _.TypeId, _.File, _.Offset, _.Message, _.Line,_.Project))
+                .Select(_ => new Issue("", _.issue.TypeId, _.issue.File, _.issue.Offset, _.issue.Message, _.issue.Line, _.Project, 0))
+                .Select(_ => new Issue(_.Id, _.TypeId, _.File, _.Offset, _.Message, _.Line, _.Project, GetColumnNo(_, programBaseDir)))
+                .Select(_ => new Issue(CreateId(_, programBaseDir), _.TypeId, _.File, _.Offset, _.Message, _.Line, _.Project, _.Column))
                 .ToArray();
+
+            issues.ToList().ForEach(_=> GetColumnNo(_, programBaseDir));
             var issueTypes = report.IssueTypes
                 .Select(_ => new IssueType(_.Id, _.Category, _.CategoryId, _.Description, _.Severity, _.WikiUrl,
                     _.SubCategory))
@@ -168,7 +171,7 @@ namespace InspectCodeVisualizer
                 content += lines[i];
             }
 
-            var issueForHash = new IssueForHash(issue.TypeId, issue.File, issue.Message, content);
+            var issueForHash = new IssueForHash(issue.TypeId, issue.File, issue.Column, issue.Message, content);
             var serializer = new DataContractJsonSerializer(typeof(IssueForHash));
             var stringWriter = new StringWriter();
 
@@ -189,6 +192,7 @@ namespace InspectCodeVisualizer
             }
             var lastLfOffset = content.LastIndexOf("\n", offsetStart);
             var lineOffset = offsetStart - (lastLfOffset + 1);
+            
             return lineOffset;
         }
 
@@ -219,10 +223,11 @@ namespace InspectCodeVisualizer
     [DataContract]
     class IssueForHash
     {
-        public IssueForHash(string typeId, string file, string message, string sourceCodeFragment)
+        public IssueForHash(string typeId, string file, int column, string message, string sourceCodeFragment)
         {
             TypeId = typeId;
             File = file;
+            Column = column;
             Message = message;
             SourceCodeFragment = sourceCodeFragment;
         }
@@ -233,10 +238,13 @@ namespace InspectCodeVisualizer
         [DataMember(Name = "file", Order = 2)]
         public string File { get; private set; }
 
-        [DataMember(Name = "message", Order = 3)]
+        [DataMember(Name = "column", Order = 3)]
+        public int Column { get; private set; }
+
+        [DataMember(Name = "message", Order = 4)]
         public string Message { get; private set; }
 
-        [DataMember(Name = "sourceCodeFragment", Order = 4)]
+        [DataMember(Name = "sourceCodeFragment", Order = 5)]
         public string SourceCodeFragment { get; private set; }
     }
 
@@ -382,7 +390,7 @@ namespace InspectCodeVisualizer
     [DataContract]
     class Issue
     {
-        public Issue(string id, string typeId, string file, string offset, string message, ushort line, string project)
+        public Issue(string id, string typeId, string file, string offset, string message, ushort line, string project, int column)
         {
             Id = id;
             TypeId = typeId;
@@ -391,6 +399,7 @@ namespace InspectCodeVisualizer
             Message = message;
             Line = line;
             Project = project;
+            Column = column;
         }
 
         [DataMember(Name="id", Order = 0)]
@@ -412,5 +421,8 @@ namespace InspectCodeVisualizer
 
         [DataMember(Name = "project", Order = 6)]
         public string Project { get; private set; }
+
+        [DataMember(Name ="column")]
+        public int Column { get; private set; }
     }
 }

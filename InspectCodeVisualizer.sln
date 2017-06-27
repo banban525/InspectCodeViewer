@@ -5,6 +5,45 @@ VisualStudioVersion = 15.0.26430.6
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InspectCodeVisualizer", "InspectCodeVisualizer\InspectCodeVisualizer.csproj", "{533FB767-2DFB-44BD-AF2D-FE3708A4F661}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{23E8ED81-78FE-4010-BC67-E71D81EAC3D4}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+		.gitignore = .gitignore
+		inspectCodeResult.xml = inspectCodeResult.xml
+		package.json = package.json
+		readme.md = readme.md
+		tsconfig.json = tsconfig.json
+		webpack.config.dev.js = webpack.config.dev.js
+		webpack.config.js = webpack.config.js
+		yarn.lock = yarn.lock
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src_html", "src_html", "{F25A4F2B-7B65-426E-8B87-A038E079AB92}"
+	ProjectSection(SolutionItems) = preProject
+		src_html\empty.html = src_html\empty.html
+		src_html\index.html = src_html\index.html
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "js", "js", "{9D109DCF-01AE-41C0-BFFC-A2F281ACCC62}"
+	ProjectSection(SolutionItems) = preProject
+		src_html\js\code.js = src_html\js\code.js
+		src_html\js\syntaxhighlighter.js = src_html\js\syntaxhighlighter.js
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "css", "css", "{24D4EB1F-D84A-4416-8C17-6D138FDB51E8}"
+	ProjectSection(SolutionItems) = preProject
+		src_html\css\darkTheme.css = src_html\css\darkTheme.css
+		src_html\css\style.css = src_html\css\style.css
+		src_html\css\theme.css = src_html\css\theme.css
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src_js", "src_js", "{E9190BC4-0269-4C44-AA9E-216F4B9C8BD0}"
+	ProjectSection(SolutionItems) = preProject
+		src_js\App.tsx = src_js\App.tsx
+		src_js\Index.tsx = src_js\Index.tsx
+		src_js\SelectableList.tsx = src_js\SelectableList.tsx
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +57,11 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{F25A4F2B-7B65-426E-8B87-A038E079AB92} = {23E8ED81-78FE-4010-BC67-E71D81EAC3D4}
+		{9D109DCF-01AE-41C0-BFFC-A2F281ACCC62} = {F25A4F2B-7B65-426E-8B87-A038E079AB92}
+		{24D4EB1F-D84A-4416-8C17-6D138FDB51E8} = {F25A4F2B-7B65-426E-8B87-A038E079AB92}
+		{E9190BC4-0269-4C44-AA9E-216F4B9C8BD0} = {23E8ED81-78FE-4010-BC67-E71D81EAC3D4}
 	EndGlobalSection
 EndGlobal

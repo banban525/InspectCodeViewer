@@ -62,6 +62,7 @@ interface IIssue{
   line:string;
   message:string;
   project:string;
+  column:number;
 }
 
 interface IOriginalData{
@@ -122,7 +123,8 @@ class App extends Component<any, IAppState> {
         message:"",
         offset:"0",
         project:"",
-        typeId:""
+        typeId:"",
+        column:0
       }, 
       originalData:{
         issues:[],
@@ -413,9 +415,11 @@ class App extends Component<any, IAppState> {
             allowFullScreen />
           <Paper height="200px" style={{float: "bottom"}} >
             Id:{this.state.selectedIssue.id}<br/>
-            File:{this.state.selectedIssue.file}<br/>
             Message:{this.state.selectedIssue.message}<br/>
-            Project:{this.state.selectedIssue.project}
+            Project:{this.state.selectedIssue.project}<br/>
+            File:{this.state.selectedIssue.file}<br/>
+            Line:{this.state.selectedIssue.line}<br/>
+            Column:{this.state.selectedIssue.column}<br/>
           </Paper>
         </div>
         </Paper>
