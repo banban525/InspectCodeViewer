@@ -27,6 +27,7 @@ interface IAppState{
   issuesGroupBy?:IssueGroupByTypes;
   selectedIssueId?:string;
   selectedIssue? : IIssue;
+  selectedIssueType?: IIssueType;
   tree?: IGroup;
   originalData?: IOriginalData,
   hostWidth?:number;
@@ -126,6 +127,14 @@ class App extends Component<any, IAppState> {
         typeId:"",
         column:0
       }, 
+      selectedIssueType:{
+        id:"",
+        category:"",
+        categoryId:"",
+        description:"",
+        severity:"",
+        wikiUrl:""
+      },
       originalData:{
         issues:[],
         issueTypes:[]
@@ -183,7 +192,6 @@ class App extends Component<any, IAppState> {
         if(a.length<b.length){return 1;}
         return 0;
       })
-      console.log(sortedList);
 
       var result :IGroup[] = [];
       for(var issuesGroup of sortedList){
@@ -223,8 +231,10 @@ class App extends Component<any, IAppState> {
       // クリックされたのがissueなら選択する
       var id = value.replace("ISSUE_", "");
       var selectedIssue = this.state.originalData.issues.filter(issue=>issue.id === id)[0];
- 
-      this.setState({selectedIssueId:value, selectedIssue: selectedIssue});
+      var selectedIssueType = this.state.originalData.issueTypes.filter(issueType=>issueType.id == selectedIssue.typeId)[0];
+      
+
+      this.setState({selectedIssueId:value, selectedIssue: selectedIssue, selectedIssueType:selectedIssueType});
     }
     else
     {
@@ -297,7 +307,7 @@ class App extends Component<any, IAppState> {
         open={group.isOpen}
         primaryText={group.name}
         key={group.id}
-        rightAvatar={<Badge badgeContent={group.items.length} primary={true}/>}
+        rightAvatar={<Badge badgeContent={group.badge} primary={true}/>}
         nestedItems={this.createIssueTreeListItem(group)}
         onNestedListToggle={()=>this.onTouchTapListGroup(group)}
         onTouchTap={()=>this.onTouchTapListGroup(group)} />
@@ -317,6 +327,7 @@ class App extends Component<any, IAppState> {
       var data:IOriginalData = originalData;
       this.setState({
         selectedIssue:data.issues[0], 
+        selectedIssueType:data.issueTypes.filter(_=>_.id === data.issues[0].typeId)[0],
         originalData:data,
         tree: this.createTree(data.issues, data.issueTypes, IssueGroupByTypes.IssueType)
       });
@@ -369,42 +380,43 @@ class App extends Component<any, IAppState> {
             value={this.state.selectedThermaId}
             onChange={this.onChangedTherma}
             >
-            <MenuItem value={0} primaryText="Light" />
-            <MenuItem value={1} primaryText="Dark" />
+            <MenuItem key="thermaLight" value={0} primaryText="Light" />
+            <MenuItem key="thermaDark" value={1} primaryText="Dark" />
             </SelectField>
         } />
-          <Paper style={{height: (this.state.hostHeight - 24-64) + "px", overflow:"hidden"}}>
-          <div style={{float: "left", width: "30%", height: "100%", overflowY: "scroll"}}>
-            <SelectField
+        <Paper style={{height: (this.state.hostHeight - 24-64) + "px", overflow:"hidden"}}>
+        <div style={{float: "left", width: "30%", height: "100%"}}>
+          <SelectField
             floatingLabelText="Revisions"
             value={this.state.selectedRevision.id}
             onChange={this.onChangedRevision}
             fullWidth
-            >
-            {this.state.revisions.revisionInfos.map(revision=>{
-              return (<MenuItem 
-                value={revision.id} 
-                primaryText={revision.caption} 
-                rightAvatar={<Badge badgeContent={revision.issueCount} primary={true}/>} />)
-            })}
-            </SelectField>
-
-          <SelectableList 
-            defaultValue={this.state.selectedIssueId} 
-            onIndexChanged={this.onSelectedIssueId}>
-            <Subheader>
-              <SelectField
-              floatingLabelText="Issues Group By"
-              value={this.state.issuesGroupBy}
-              onChange={this.onChangeIssuesGroupBy}
-              >
-                <MenuItem value={1} primaryText="Directory and File" />
-                <MenuItem value={2} primaryText="Issue Type" />
-                <MenuItem value={3} primaryText="Issue Category" />
-              </SelectField>
-            </Subheader>
-            {this.createIssueTreeListItem(this.state.tree)}
-          </SelectableList>
+            style={{height:"72px"}}>
+          {this.state.revisions.revisionInfos.map(revision=>{
+            return (<MenuItem 
+              key={"Revision_" + revision.id}
+              value={revision.id} 
+              primaryText={revision.caption} 
+              rightAvatar={<Badge badgeContent={revision.issueCount} primary={true}/>} />)
+          })}
+          </SelectField>
+          <SelectField
+            floatingLabelText="Issues Group By"
+            value={this.state.issuesGroupBy}
+            onChange={this.onChangeIssuesGroupBy}
+            style={{height:"72px"}}
+          >
+            <MenuItem value={1} primaryText="Directory and File" />
+            <MenuItem value={2} primaryText="Issue Type" />
+            <MenuItem value={3} primaryText="Issue Category" />
+          </SelectField>
+          <div style={{height:(this.state.hostHeight - 24-64-72-72) + "px", overflowY:"scroll"}}>
+            <SelectableList 
+              defaultValue={this.state.selectedIssueId} 
+              onIndexChanged={this.onSelectedIssueId}>
+              {this.createIssueTreeListItem(this.state.tree)}
+            </SelectableList>
+          </div>
         </div>
         <div style={{float: "none", width: "auto", marginLeft: "30%",height:`${this.state.hostHeight - 64}px`}}>
           <Iframe url={this.getCodePageUri()}
@@ -420,6 +432,7 @@ class App extends Component<any, IAppState> {
             File:{this.state.selectedIssue.file}<br/>
             Line:{this.state.selectedIssue.line}<br/>
             Column:{this.state.selectedIssue.column}<br/>
+            Url:<a href={this.state.selectedIssueType.wikiUrl}>{this.state.selectedIssueType.wikiUrl}</a><br/>
           </Paper>
         </div>
         </Paper>
