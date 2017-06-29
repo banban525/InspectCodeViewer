@@ -467,6 +467,7 @@ class App extends Component<any, IAppState> {
     return (
       <MuiThemeProvider muiTheme={getMuiTheme(this.state.selectedThermaId===0?lightBaseTheme:darkBaseTheme)}>
         <div>
+        <link rel="stylesheet" href={this.state.selectedThermaId === 0?"css/bootstrap.min.css":"css/dark.bootstrap.min.css"} />
         <AppBar title="Inspect code viewer" style={{height:"64px"}} iconElementRight={
           <SelectField
             value={this.state.selectedThermaId}
