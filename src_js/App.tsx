@@ -15,6 +15,8 @@ import lightBaseTheme from 'material-ui/styles/baseThemes/lightBaseTheme';
 import Paper from 'material-ui/Paper';
 import AppBar from 'material-ui/AppBar';
 import Badge from 'material-ui/Badge';
+import { BootstrapTable, TableHeaderColumn, Options,SelectRow,SelectRowMode } from "react-bootstrap-table";
+import "jquery";
 
 injectTapEventPlugin();
 
@@ -78,6 +80,7 @@ interface IGroup{
   items:IItem[];
   isOpen:boolean;
   badge:string;
+  expandedChildren:string[];
 }
 interface IItem{
   id:string;
@@ -101,6 +104,10 @@ class App extends Component<any, IAppState> {
     this.onChangedRevision = this.onChangedRevision.bind(this);
     this.onChangedTherma = this.onChangedTherma.bind(this);
     this.getInitialData = this.getInitialData.bind(this);
+    this.onSelectedIssue = this.onSelectedIssue.bind(this);
+    this.expandComponent = this.expandComponent.bind(this);
+    this.formatIssuGroup = this.formatIssuGroup.bind(this);
+    this.onSelectedIssueGroup = this.onSelectedIssueGroup.bind(this);
 
     // var revisions:IRevisionInfo[] = [
     //     {
@@ -206,7 +213,8 @@ class App extends Component<any, IAppState> {
             badge: ""
           }; }),
           subGroups:[],
-          badge: issuesGroup.length.toString()
+          badge: issuesGroup.length.toString(),
+          expandedChildren:[]
         };
         result = result.concat([group]);
       }
@@ -216,7 +224,8 @@ class App extends Component<any, IAppState> {
         isOpen: true,
         subGroups: result,
         items:[],
-        badge:""
+        badge:"",
+        expandedChildren:[]
       };
   }
 
@@ -267,7 +276,8 @@ class App extends Component<any, IAppState> {
         items: tree.items,
         name: tree.name,
         subGroups:newSubGroups,
-        badge: tree.badge
+        badge: tree.badge,
+        expandedChildren:tree.expandedChildren
       }
     }
     else{
@@ -325,11 +335,15 @@ class App extends Component<any, IAppState> {
 
     this.getAjaxData(`./revisions/${selectedRevision.id}/data.js`, originalData=>{
       var data:IOriginalData = originalData;
+      var tree = this.createTree(data.issues, data.issueTypes, IssueGroupByTypes.IssueType);
+
+      tree.expandedChildren = [tree.subGroups[0].id]
+
       this.setState({
         selectedIssue:data.issues[0], 
         selectedIssueType:data.issueTypes.filter(_=>_.id === data.issues[0].typeId)[0],
         originalData:data,
-        tree: this.createTree(data.issues, data.issueTypes, IssueGroupByTypes.IssueType)
+        tree: tree
       });
     });
 
@@ -371,6 +385,84 @@ class App extends Component<any, IAppState> {
     localStorage["InspectCodeViewer.thermaId"] = value;
     this.setState({selectedThermaId:value});
   }
+  formatIssuGroup(cell:any, row:any):any {
+    var group = row as IGroup
+    
+    return (<div>
+      <div style={{textAlign:"left" ,float:"left"}}>{cell}</div>
+      <div style={{textAlign:"right"}}>
+        <Badge
+          badgeContent={group.badge}
+          style={{ 
+            marginRight:"12px" ,
+            paddingBottom: "0px"
+            }}
+          primary={true}/></div>
+    </div>);
+  }
+
+  onSelectedIssue(row: any, isSelected: boolean, e: any): boolean{
+    var id = row.id as string;
+
+    if(id.match(/^ISSUE_/) !== null)
+    {
+      // クリックされたのがissueなら選択する
+      var id = id.replace("ISSUE_", "");
+      var selectedIssue = this.state.originalData.issues.filter(issue=>issue.id === id)[0];
+      var selectedIssueType = this.state.originalData.issueTypes.filter(issueType=>issueType.id == selectedIssue.typeId)[0];
+      
+      this.setState({selectedIssueId:row.id, selectedIssue: selectedIssue, selectedIssueType:selectedIssueType});
+    }
+    else
+    {
+
+    }
+
+
+    return false;
+  }
+
+  onSelectedIssueGroup(parent:IGroup, row:any):boolean{
+    console.log(parent.expandedChildren);
+    var selectedGroup:IGroup = row;
+    var newExpandedChildren:string[] = [selectedGroup.id];
+
+    if(parent.expandedChildren[0] === selectedGroup.id)
+    {
+      return false;
+    }
+
+    var newParent = objectAssign({}, parent,{expandedChildren:newExpandedChildren});
+    var newTree = this.updateGroups(this.state.tree, newParent);
+    this.setState({tree:newTree});
+    return false;
+  }
+
+  expandComponent(row:any):any{
+    return (
+      <BootstrapTable 
+        data={ row.items }
+        striped
+        selectRow={{
+          mode: 'radio',
+          bgColor: darkBaseTheme.palette.primary2Color,
+          hideSelectColumn: true,
+          clickToSelect: true,
+          onSelect: this.onSelectedIssue,
+          selected: [this.state.selectedIssueId]
+        }}
+        options={{
+           paginationSize: 3,
+           hideSizePerPage: true,
+           withFirstAndLast: false
+        } as Options}
+        pagination
+       >
+        <TableHeaderColumn isKey dataField='id' hidden>ID</TableHeaderColumn>
+        <TableHeaderColumn dataField='name'></TableHeaderColumn>
+      </BootstrapTable>
+    );
+  }
   render() {
     return (
       <MuiThemeProvider muiTheme={getMuiTheme(this.state.selectedThermaId===0?lightBaseTheme:darkBaseTheme)}>
@@ -385,7 +477,7 @@ class App extends Component<any, IAppState> {
             </SelectField>
         } />
         <Paper style={{height: (this.state.hostHeight - 24-64) + "px", overflow:"hidden"}}>
-        <div style={{float: "left", width: "30%", height: "100%"}}>
+        <div style={{float: "left", width: "40%", height: "100%"}}>
           <SelectField
             floatingLabelText="Revisions"
             value={this.state.selectedRevision.id}
@@ -410,15 +502,38 @@ class App extends Component<any, IAppState> {
             <MenuItem value={2} primaryText="Issue Type" />
             <MenuItem value={3} primaryText="Issue Category" />
           </SelectField>
-          <div style={{height:(this.state.hostHeight - 24-64-72-72) + "px", overflowY:"scroll"}}>
-            <SelectableList 
+          <div style={{height:(this.state.hostHeight - 24-64-72-72) + "px"}}>
+            {/*<SelectableList 
               defaultValue={this.state.selectedIssueId} 
               onIndexChanged={this.onSelectedIssueId}>
               {this.createIssueTreeListItem(this.state.tree)}
-            </SelectableList>
+            </SelectableList>*/}
+
+            <BootstrapTable 
+              data={this.state.tree.subGroups} 
+              striped
+              expandableRow={ (row)=>true }
+              expandComponent={ this.expandComponent }
+              pagination
+              maxHeight={(this.state.hostHeight - 24-64-72-72-128) + "px"}
+              options={{
+                paginationPosition: 'top',
+                expanding: this.state.tree.expandedChildren
+                } as Options}
+              selectRow={{
+                mode:'radio',
+                clickToSelect: true,
+                clickToExpand: true,
+                hideSelectColumn: true,
+                onSelect:(row: any, isSelected: boolean, e: any)=>this.onSelectedIssueGroup(this.state.tree, row)
+              } as SelectRow}
+            >
+                <TableHeaderColumn isKey dataField='id' hidden>Product ID</TableHeaderColumn>
+                <TableHeaderColumn dataField='name' dataFormat={this.formatIssuGroup}></TableHeaderColumn>
+            </BootstrapTable>
           </div>
-        </div>
-        <div style={{float: "none", width: "auto", marginLeft: "30%",height:`${this.state.hostHeight - 64}px`}}>
+          </div>
+        <div style={{float: "none", width: "auto", marginLeft: "40%",height:`${this.state.hostHeight - 64}px`}}>
           <Iframe url={this.getCodePageUri()}
             width="100%"
             height="70%"
@@ -432,7 +547,7 @@ class App extends Component<any, IAppState> {
             File:{this.state.selectedIssue.file}<br/>
             Line:{this.state.selectedIssue.line}<br/>
             Column:{this.state.selectedIssue.column}<br/>
-            Url:<a href={this.state.selectedIssueType.wikiUrl}>{this.state.selectedIssueType.wikiUrl}</a><br/>
+            Url:<a target="_blank" href={this.state.selectedIssueType.wikiUrl}>{this.state.selectedIssueType.wikiUrl}</a><br/>
           </Paper>
         </div>
         </Paper>
