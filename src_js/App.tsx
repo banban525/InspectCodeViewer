@@ -17,6 +17,10 @@ import AppBar from 'material-ui/AppBar';
 import Badge from 'material-ui/Badge';
 import { BootstrapTable, TableHeaderColumn, Options,SelectRow,SelectRowMode } from "react-bootstrap-table";
 import "jquery";
+import WarningIcon from 'material-ui/svg-icons/alert/warning';
+import ErrorIcon from 'material-ui/svg-icons/alert/error';
+import InfoIcon from 'material-ui/svg-icons/action/info';
+import {blue500, red500, green500, lime500} from 'material-ui/styles/colors';
 
 injectTapEventPlugin();
 
@@ -72,7 +76,14 @@ interface IOriginalData{
   issueTypes:IIssueType[];
   issues:IIssue[];
 }
-
+enum IssueIconType
+{
+  none,
+  error,
+  warning,
+  suggestion,
+  hint,
+}
 interface IGroup{
   id:string;
   name:string;
@@ -81,11 +92,13 @@ interface IGroup{
   isOpen:boolean;
   badge:string;
   expandedChildren:string[];
+  icon:IssueIconType;
 }
 interface IItem{
   id:string;
   name:string;
   badge:string;
+  icon:IssueIconType;
 }
 
 declare var __data: any;
@@ -108,7 +121,11 @@ class App extends Component<any, IAppState> {
     this.expandComponent = this.expandComponent.bind(this);
     this.formatIssuGroup = this.formatIssuGroup.bind(this);
     this.onSelectedIssueGroup = this.onSelectedIssueGroup.bind(this);
-
+    this.createIssueTreeElement = this.createIssueTreeElement.bind(this);
+    this.createIssueGroupElement = this.createIssueGroupElement.bind(this);
+    this.createIssueElement = this.createIssueElement.bind(this);
+    this.createExpandComponent = this.createExpandComponent.bind(this);
+    
     // var revisions:IRevisionInfo[] = [
     //     {
     //       id:"5c8ba098fdb04703952f118ee0463894",
@@ -123,7 +140,7 @@ class App extends Component<any, IAppState> {
     //   ];
     
     this.state = {
-      issuesGroupBy:1, 
+      issuesGroupBy:IssueGroupByTypes.IssueType, 
       selectedIssue:{
         id:"",
         file:"",
@@ -184,8 +201,31 @@ class App extends Component<any, IAppState> {
     this.setState({hostWidth:window.innerWidth, hostHeight:window.innerHeight});
   }
 
+  toIconType(severity:string):IssueIconType
+  {
+    if(severity === "ERROR")
+    {
+      return IssueIconType.error;
+    }
+    if(severity === "WARNING")
+    {
+      return IssueIconType.warning;
+    }
+    if(severity === "SUGGESTION")
+    {
+      return IssueIconType.suggestion;
+    }
+    if(severity === "HINT")
+    {
+      return IssueIconType.hint;
+    }
+    return IssueIconType.none;
+  }
+
   createTree(issues:IIssue[], issueTypes:IIssueType[], issueGroupBy:IssueGroupByTypes): IGroup{
-     var dic : {[key:string]:IIssue[]} = {};
+    if(issueGroupBy === IssueGroupByTypes.IssueType)
+    {
+      var dic : {[key:string]:IIssue[]} = {};
       issues.map(issue=>{
         if(!(issue.typeId in dic))
         {
@@ -203,18 +243,21 @@ class App extends Component<any, IAppState> {
       var result :IGroup[] = [];
       for(var issuesGroup of sortedList){
         var issueTypeId = issuesGroup[0].typeId;
+        var issueType = issueTypes.filter(issueType=>issueType.id === issueTypeId)[0];
         var group:IGroup = {
           id: issueTypeId,
           isOpen: false,
-          name: issueTypes.filter(issueType=>issueType.id === issueTypeId)[0].description,
+          name: issueType.description,
           items: issuesGroup.map(issue=>{return {
             id: "ISSUE_" + issue.id,
             name: `${issue.file}:${issue.line}`,
-            badge: ""
+            badge: "",
+            icon: this.toIconType(issueType.severity)
           }; }),
           subGroups:[],
           badge: issuesGroup.length.toString(),
-          expandedChildren:[]
+          expandedChildren:[],
+          icon: this.toIconType(issueType.severity)
         };
         result = result.concat([group]);
       }
@@ -225,12 +268,86 @@ class App extends Component<any, IAppState> {
         subGroups: result,
         items:[],
         badge:"",
-        expandedChildren:[]
+        expandedChildren:[],
+        icon:IssueIconType.none
       };
+    }
+    else if(issueGroupBy === IssueGroupByTypes.ProjectAndFile)
+    {
+      //Group by Project
+      var dic : {[key:string]:IIssue[]} = {};
+      issues.map(issue=>{
+        if(!(issue.project in dic))
+        {
+          dic[issue.project] = [];
+        }
+        dic[issue.project] = dic[issue.project].concat([issue]);
+      });
+      //Group by file
+      var dic2 : {[key:string]:{[key:string]:IIssue[]}} = {}
+      Object.keys(dic).map(project=>{
+        var dicTemp : {[key:string]:IIssue[]} = {}
+        dic[project].map(issue=>{
+          if(!(issue.file in dicTemp))
+          {
+            dicTemp[issue.file] = [];
+          }
+          dicTemp[issue.file] = dicTemp[issue.file].concat([issue]);
+        })
+        dic2[project] = dicTemp;
+      })
+      console.log(dic2);
+
+      var list = Object.keys(dic2).map(project=>{
+        var issuesGroupbyFile:{[key:string]:IIssue[]} = dic2[project];
+        var issueSum:number = 0;
+        return {
+          id: project,
+          isOpen: false,
+          name: project,
+          items: [],
+          subGroups: Object.keys(issuesGroupbyFile).map(file=>{
+            issueSum += issuesGroupbyFile[file].length;
+            return {
+              id: file,
+              isOpen: false,
+              name: file,
+              items: issuesGroupbyFile[file].map(issue=>{
+                var issueType = issueTypes.filter(issueType=>issueType.id === issue.typeId)[0];
+                return {
+                  id: "ISSUE_" + issue.id,
+                  name: `${issue.message}`,
+                  badge: "",
+                  icon:this.toIconType(issueType.severity)
+                }
+              }),
+              subGroups:[],
+              badge: issuesGroupbyFile[file].length.toString(),
+              expandedChildren:[],
+              icon:IssueIconType.none
+            };
+          }),
+          badge: issueSum.toString(),
+          expandedChildren:[],
+          icon:IssueIconType.none
+        };
+      });
+      return {
+        id: "",
+        name: "",
+        isOpen: true,
+        subGroups: list,
+        items:[],
+        badge:"",
+        expandedChildren:[],
+        icon:IssueIconType.none
+      };
+    }
   }
 
   onChangeIssuesGroupBy(event:any, index:number, value:number):void {
-      this.setState({issuesGroupBy:value});
+    var newtree = this.createTree(this.state.originalData.issues, this.state.originalData.issueTypes, value);
+    this.setState({issuesGroupBy:value, tree:newtree});
   }
 
   onSelectedIssueId(value:string):void {
@@ -242,7 +359,6 @@ class App extends Component<any, IAppState> {
       var selectedIssue = this.state.originalData.issues.filter(issue=>issue.id === id)[0];
       var selectedIssueType = this.state.originalData.issueTypes.filter(issueType=>issueType.id == selectedIssue.typeId)[0];
       
-
       this.setState({selectedIssueId:value, selectedIssue: selectedIssue, selectedIssueType:selectedIssueType});
     }
     else
@@ -277,7 +393,8 @@ class App extends Component<any, IAppState> {
         name: tree.name,
         subGroups:newSubGroups,
         badge: tree.badge,
-        expandedChildren:tree.expandedChildren
+        expandedChildren:tree.expandedChildren,
+        icon:tree.icon
       }
     }
     else{
@@ -385,11 +502,30 @@ class App extends Component<any, IAppState> {
     localStorage["InspectCodeViewer.thermaId"] = value;
     this.setState({selectedThermaId:value});
   }
+  toIconElement(icon: IssueIconType):any{
+    if(icon === IssueIconType.error)
+    {
+      return (<ErrorIcon color={red500}/>);
+    }
+    if(icon === IssueIconType.warning)
+    {
+      return (<WarningIcon color={lime500}/>);
+    }
+    if(icon === IssueIconType.suggestion)
+    {
+      return (<InfoIcon color={green500}/>);
+    }
+    if(icon === IssueIconType.hint)
+    {
+      return (<InfoIcon color={blue500}/>);
+    }
+    return (<span/>);
+  }
   formatIssuGroup(cell:any, row:any):any {
     var group = row as IGroup
     
     return (<div>
-      <div style={{textAlign:"left" ,float:"left"}}>{cell}</div>
+      <div style={{textAlign:"left" ,float:"left"}}>{this.toIconElement(group.icon)}{cell}</div>
       <div style={{textAlign:"right"}}>
         <Badge
           badgeContent={group.badge}
@@ -463,6 +599,100 @@ class App extends Component<any, IAppState> {
       </BootstrapTable>
     );
   }
+
+  createIssueElement(root:IGroup):any
+  {
+    var isLargeData = root.items.length > 10;
+    return (
+      <BootstrapTable 
+        data={ root.items }
+        striped
+        selectRow={{
+          mode: 'radio',
+          bgColor: darkBaseTheme.palette.primary2Color,
+          hideSelectColumn: true,
+          clickToSelect: true,
+          onSelect: this.onSelectedIssue,
+          selected: [this.state.selectedIssueId]
+        }}
+        options={{
+           paginationSize: 3,
+           hideSizePerPage: true,
+           withFirstAndLast: false
+        } as Options}
+        pagination = {isLargeData}
+       >
+        <TableHeaderColumn isKey dataField='id' hidden>ID</TableHeaderColumn>
+        <TableHeaderColumn dataField='name'></TableHeaderColumn>
+      </BootstrapTable>
+    );
+  }
+  createIssueGroupElement(root: IGroup):any{
+    var isLargeData = root.subGroups.length > 10;
+    return (
+      <BootstrapTable 
+        data={root.subGroups} 
+        striped
+        expandableRow={ (row)=>true }
+        expandComponent={ this.createExpandComponent }
+        pagination = {isLargeData}
+        options={{
+          paginationPosition: 'top',
+          expanding: root.expandedChildren
+          } as Options}
+        selectRow={{
+          mode:'radio',
+          clickToSelect: true,
+          clickToExpand: true,
+          hideSelectColumn: true,
+          onSelect:(row: any, isSelected: boolean, e: any)=>this.onSelectedIssueGroup(root, row)
+        } as SelectRow}
+      >
+          <TableHeaderColumn isKey dataField='id' hidden>ID</TableHeaderColumn>
+          <TableHeaderColumn dataField='name' dataFormat={this.formatIssuGroup}></TableHeaderColumn>
+      </BootstrapTable>
+    );
+  }
+
+  createExpandComponent(target: IGroup)
+  {
+    if(target.subGroups.length > 0)
+    {
+      return this.createIssueGroupElement(target);
+    }
+    else
+    {
+      return this.createIssueElement(target);
+    }
+  }
+
+  createIssueTreeElement(root: IGroup):any{
+    return (
+      <BootstrapTable 
+        data={root.subGroups} 
+        striped
+        expandableRow={ (row)=>true }
+        expandComponent={ this.createExpandComponent }
+        pagination
+        maxHeight={(this.state.hostHeight - 24-64-72-72-128) + "px"}
+        options={{
+          paginationPosition: 'top',
+          expanding: root.expandedChildren
+          } as Options}
+        selectRow={{
+          mode:'radio',
+          clickToSelect: true,
+          clickToExpand: true,
+          hideSelectColumn: true,
+          onSelect:(row: any, isSelected: boolean, e: any)=>this.onSelectedIssueGroup(root, row)
+        } as SelectRow}
+      >
+          <TableHeaderColumn isKey dataField='id' hidden>ID</TableHeaderColumn>
+          <TableHeaderColumn dataField='name' dataFormat={this.formatIssuGroup}></TableHeaderColumn>
+      </BootstrapTable>
+    );
+  }
+
   render() {
     return (
       <MuiThemeProvider muiTheme={getMuiTheme(this.state.selectedThermaId===0?lightBaseTheme:darkBaseTheme)}>
@@ -509,8 +739,8 @@ class App extends Component<any, IAppState> {
               onIndexChanged={this.onSelectedIssueId}>
               {this.createIssueTreeListItem(this.state.tree)}
             </SelectableList>*/}
-
-            <BootstrapTable 
+            {this.createIssueTreeElement(this.state.tree)}
+            {/*<BootstrapTable 
               data={this.state.tree.subGroups} 
               striped
               expandableRow={ (row)=>true }
@@ -531,7 +761,7 @@ class App extends Component<any, IAppState> {
             >
                 <TableHeaderColumn isKey dataField='id' hidden>Product ID</TableHeaderColumn>
                 <TableHeaderColumn dataField='name' dataFormat={this.formatIssuGroup}></TableHeaderColumn>
-            </BootstrapTable>
+            </BootstrapTable>*/}
           </div>
           </div>
         <div style={{float: "none", width: "auto", marginLeft: "40%",height:`${this.state.hostHeight - 64}px`}}>
