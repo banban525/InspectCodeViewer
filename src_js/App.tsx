@@ -36,9 +36,12 @@ interface IAppState{
   selectedIssueType?: IIssueType;
   tree?: IGroup;
   originalData?: IOriginalData,
+  currentData?: IOriginalData,
+  diffBaseData?: IOriginalData,
   hostWidth?:number;
   hostHeight?:number;
   selectedRevision?: IRevisionInfo;
+  selectedDiffBaseRevision: IRevisionInfo;
   revisions?:IInspectResultsSummary;
   selectedThermaId?:number;
 }
@@ -125,7 +128,8 @@ class App extends Component<any, IAppState> {
     this.createIssueGroupElement = this.createIssueGroupElement.bind(this);
     this.createIssueElement = this.createIssueElement.bind(this);
     this.createExpandComponent = this.createExpandComponent.bind(this);
-    
+    this.onChangedDiffBaseRevision  = this.onChangedDiffBaseRevision.bind(this);
+
     // var revisions:IRevisionInfo[] = [
     //     {
     //       id:"5c8ba098fdb04703952f118ee0463894",
@@ -163,13 +167,26 @@ class App extends Component<any, IAppState> {
         issues:[],
         issueTypes:[]
       },
-      tree: this.createTree([], [], IssueGroupByTypes.IssueType),
+      currentData:{
+        issues:[],
+        issueTypes:[]
+      },
+      diffBaseData:{
+        issues:[],
+        issueTypes:[]
+      },
+      tree: this.createTree([], [], [], IssueGroupByTypes.IssueType),
       hostWidth:window.innerWidth, 
       hostHeight:window.innerHeight,
       revisions:{
         revisionInfos:[]
       },
       selectedRevision:{
+        id:"",
+        issueCount:0,
+        caption:""
+      },
+      selectedDiffBaseRevision:{
         id:"",
         issueCount:0,
         caption:""
@@ -222,11 +239,15 @@ class App extends Component<any, IAppState> {
     return IssueIconType.none;
   }
 
-  createTree(issues:IIssue[], issueTypes:IIssueType[], issueGroupBy:IssueGroupByTypes): IGroup{
+  createTree(issues:IIssue[], diffBaseIssues:IIssue[], issueTypes:IIssueType[], issueGroupBy:IssueGroupByTypes): IGroup{
+    let targetIssues:IIssue[] = issues.filter(issue=>{
+      return !diffBaseIssues.some((value) => value.id === issue.id);
+    })
+
     if(issueGroupBy === IssueGroupByTypes.IssueType)
     {
       var dic : {[key:string]:IIssue[]} = {};
-      issues.map(issue=>{
+      targetIssues.map(issue=>{
         if(!(issue.typeId in dic))
         {
           dic[issue.typeId] = [];
@@ -276,7 +297,7 @@ class App extends Component<any, IAppState> {
     {
       //Group by Project
       var dic : {[key:string]:IIssue[]} = {};
-      issues.map(issue=>{
+      targetIssues.map(issue=>{
         if(!(issue.project in dic))
         {
           dic[issue.project] = [];
@@ -346,7 +367,11 @@ class App extends Component<any, IAppState> {
   }
 
   onChangeIssuesGroupBy(event:any, index:number, value:number):void {
-    var newtree = this.createTree(this.state.originalData.issues, this.state.originalData.issueTypes, value);
+    var newtree = this.createTree(
+      this.state.currentData.issues, 
+      this.state.diffBaseData.issues, 
+      this.state.currentData.issueTypes, 
+      value);
     this.setState({issuesGroupBy:value, tree:newtree});
   }
 
@@ -356,8 +381,8 @@ class App extends Component<any, IAppState> {
 
       // クリックされたのがissueなら選択する
       var id = value.replace("ISSUE_", "");
-      var selectedIssue = this.state.originalData.issues.filter(issue=>issue.id === id)[0];
-      var selectedIssueType = this.state.originalData.issueTypes.filter(issueType=>issueType.id == selectedIssue.typeId)[0];
+      var selectedIssue = this.state.currentData.issues.filter(issue=>issue.id === id)[0];
+      var selectedIssueType = this.state.currentData.issueTypes.filter(issueType=>issueType.id == selectedIssue.typeId)[0];
       
       this.setState({selectedIssueId:value, selectedIssue: selectedIssue, selectedIssueType:selectedIssueType});
     }
@@ -450,9 +475,13 @@ class App extends Component<any, IAppState> {
   onChangedRevision(event:any, index:number, value:string):void{
     var selectedRevision = this.state.revisions.revisionInfos[index];
 
-    this.getAjaxData(`./revisions/${selectedRevision.id}/data.js`, originalData=>{
-      var data:IOriginalData = originalData;
-      var tree = this.createTree(data.issues, data.issueTypes, IssueGroupByTypes.IssueType);
+    this.getAjaxData(`./revisions/${selectedRevision.id}/data.js`, currentData=>{
+      var data:IOriginalData = currentData;
+      var tree = this.createTree(
+        data.issues, 
+        this.state.diffBaseData.issues,
+        data.issueTypes, 
+        IssueGroupByTypes.IssueType);
 
       tree.expandedChildren = [tree.subGroups[0].id]
 
@@ -460,11 +489,32 @@ class App extends Component<any, IAppState> {
         selectedIssue:data.issues[0], 
         selectedIssueType:data.issueTypes.filter(_=>_.id === data.issues[0].typeId)[0],
         originalData:data,
+        currentData:data,
         tree: tree
       });
     });
 
     this.setState({selectedRevision:selectedRevision});
+  }
+
+  onChangedDiffBaseRevision(event:any, index:number, value:string):void{
+    var selectedRevision = this.state.revisions.revisionInfos[index];
+
+    this.getAjaxData(`./revisions/${selectedRevision.id}/data.js`, recievedData=>{
+      var diffBaseData:IOriginalData = recievedData;
+      var tree = this.createTree(
+        this.state.currentData.issues, 
+        diffBaseData.issues,
+        this.state.currentData.issueTypes, 
+        IssueGroupByTypes.IssueType);
+
+      this.setState({
+        diffBaseData:diffBaseData,
+        tree: tree
+      });
+    });
+
+    this.setState({selectedDiffBaseRevision:selectedRevision});
   }
 
   getAjaxData(url:string, callback:(data:any)=>void):void
@@ -544,8 +594,8 @@ class App extends Component<any, IAppState> {
     {
       // クリックされたのがissueなら選択する
       var id = id.replace("ISSUE_", "");
-      var selectedIssue = this.state.originalData.issues.filter(issue=>issue.id === id)[0];
-      var selectedIssueType = this.state.originalData.issueTypes.filter(issueType=>issueType.id == selectedIssue.typeId)[0];
+      var selectedIssue = this.state.currentData.issues.filter(issue=>issue.id === id)[0];
+      var selectedIssueType = this.state.currentData.issueTypes.filter(issueType=>issueType.id == selectedIssue.typeId)[0];
       
       this.setState({selectedIssueId:row.id, selectedIssue: selectedIssue, selectedIssueType:selectedIssueType});
     }
@@ -709,6 +759,20 @@ class App extends Component<any, IAppState> {
         } />
         <Paper style={{height: (this.state.hostHeight - 24-64) + "px", overflow:"hidden"}}>
         <div style={{float: "left", width: "40%", height: "100%"}}>
+          <SelectField
+            floatingLabelText="Diff Base Rev"
+            value={this.state.selectedDiffBaseRevision.id}
+            onChange={this.onChangedDiffBaseRevision}
+            fullWidth
+            style={{height:"72px"}}>
+          {this.state.revisions.revisionInfos.map(revision=>{
+            return (<MenuItem 
+              key={"Revision_" + revision.id}
+              value={revision.id} 
+              primaryText={revision.caption} 
+              rightAvatar={<Badge badgeContent={revision.issueCount} primary={true}/>} />)
+          })}
+          </SelectField>
           <SelectField
             floatingLabelText="Revisions"
             value={this.state.selectedRevision.id}
