@@ -20,8 +20,12 @@ import IssueBrowser from './IssueBrowser';
 import {IssueBrowserReducer, IssueBrowserActionDispatcher, IIssueBrowserState} from "./IssueBrowserReducer";
 import {IIssueBrowserProps} from './IssueBrowser';
 import {RouteComponentProps} from 'react-router-dom';
+import * as H from 'history';
+import Summary from './Summary';
+import {ISummaryProps} from './Summary';
+import {SummaryReducer,SummaryActionDispatcher,ISummaryState} from './SummaryReducer';
 
-const rootReducer = combineReducers({ AppReducer,IssueBrowserReducer });
+const rootReducer = combineReducers({ AppReducer,IssueBrowserReducer,SummaryReducer });
 const store = createStore(rootReducer);
 
 store.subscribe(() => console.log(store.getState()));
@@ -41,8 +45,9 @@ function myAjax(url:string, onRecieved:(data:any)=>void):void {
     ele.appendChild(s);
 }
 
-function mapAppStateToProps(state : any):IAppProps {
-  return objectAssign({}, state.AppReducer) as IAppProps;
+function mapAppStateToProps(state : any, ownProps:RouteComponentProps<any>):IAppProps {
+  var result = objectAssign({}, state.AppReducer, {history:ownProps.history}) as IAppProps;
+  return result;
 }
 
 function mapAppDispatchToProps(dispatch: any):any {
@@ -63,20 +68,43 @@ function mapIssueBrowserStateToProps(state : any, ownProps:RouteComponentProps<a
     ownProps);
 }
 
-function mapIssueBrowserDispatchToProps(dispatch: any) {
+function mapIssueBrowserDispatchToProps(dispatch: any):any {
   return {
     actions:new IssueBrowserActionDispatcher(dispatch, ()=>(store.getState() as any).IssueBrowserReducer as IIssueBrowserState, myAjax)
   }
 }
 
+function mapSummaryStateToProps(state : any, ownProps:RouteComponentProps<any>):ISummaryProps {
+  return objectAssign(
+    {},
+    state.SummaryReducer,
+    ownProps);
+}
+
+function mapSummaryDispatchToProps(dispatch: any):any {
+  return {
+    actions:new SummaryActionDispatcher(dispatch, ()=>(store.getState() as any).SummaryReducer as ISummaryState)
+  }
+}
+
+
+
+
+var SummaryTemp = connect(
+  mapSummaryStateToProps,
+  mapSummaryDispatchToProps)(Summary);
+var SummaryContainer = withRouter(SummaryTemp);
+
+
 var AppContainer = connect(
   mapAppStateToProps,
   mapAppDispatchToProps)(App)
-//var AppComponent = withRouter(AppContainer);
+var AppComponent = withRouter(AppContainer) as React.ComponentClass<any>;
 
 var IssueBrowserContainer = withRouter(connect(
   mapIssueBrowserStateToProps,
   mapIssueBrowserDispatchToProps)(IssueBrowser));
+
 
 
 injectTapEventPlugin();
@@ -84,11 +112,12 @@ injectTapEventPlugin();
 ReactDOM.render(
     <Provider store={store}>
       <Router>
-        <AppContainer>
+        <AppComponent>
           <Switch>
-            <Route path="/" component={IssueBrowserContainer}/>
+            <Route exact path="/" component={SummaryContainer}/>
+            <Route exact path="/issues" component={IssueBrowserContainer}/>
           </Switch>
-        </AppContainer>
+        </AppComponent>
       </Router>
     </Provider>
     ,document.getElementById("app")

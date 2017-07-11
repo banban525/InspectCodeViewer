@@ -7,6 +7,7 @@ export interface IAppState{
   hostWidth?:number;
   hostHeight?:number;
   selectedThermaId?:number;
+  isDrawerOpened?:boolean;
 }
 
 export class AppActionDispatcher
@@ -24,13 +25,24 @@ export class AppActionDispatcher
   onChangedThema(value:number):void{
     this.dispatch( {type:"onChangedThema", value:value});
   }
+  onChangeDrawerOpened(isOpened:boolean):void{
+    this.dispatch({type:'onChangeDrawerOpened', isOpened:isOpened});
+  }
+  onOpenSummaryPage():void{
+    this.dispatch({type:'onOpenSummaryPage'});
+  }
+  onOpenIssueBrowerPage():void{
+    this.dispatch({type:'onOpenIssueBrowerPage'});
+  }
 }
 
 
 const initialAppState: IAppState = {
   hostWidth:window.innerWidth, 
   hostHeight:window.innerHeight,
-  selectedThermaId:Number(localStorage["InspectCodeViewer.themaId"] || 0)
+  selectedThermaId:Number(localStorage["InspectCodeViewer.themaId"] || 0),
+  isDrawerOpened:false,
+  
 };
 
 
@@ -43,6 +55,12 @@ export function AppReducer(state: IAppState = initialAppState, action: any) {
   case 'onChangedThema':
     localStorage["InspectCodeViewer.themaId"] = action.value;
     return objectAssign({}, state,{selectedThermaId:action.value});
+  case 'onChangeDrawerOpened':
+    return objectAssign({}, state,{isDrawerOpened:action.isOpened});
+  case 'onOpenSummaryPage':
+    return objectAssign({}, state,{isDrawerOpened:false});
+  case 'onOpenIssueBrowerPage':
+    return objectAssign({}, state,{isDrawerOpened:false});
   default:
     return state;
   }
