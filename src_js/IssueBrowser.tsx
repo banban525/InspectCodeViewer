@@ -20,10 +20,26 @@ import "jquery";
 import WarningIcon from 'material-ui/svg-icons/alert/warning';
 import ErrorIcon from 'material-ui/svg-icons/alert/error';
 import InfoIcon from 'material-ui/svg-icons/action/info';
+import SettingsIcon from 'material-ui/svg-icons/action/settings';
+import FilterListIcon from 'material-ui/svg-icons/content/filter-list';
+import ArrowUpIcon from 'material-ui/svg-icons/navigation/arrow-drop-up';
+import ArrowDownIcon from 'material-ui/svg-icons/navigation/arrow-drop-down';
+import muiThemeable from 'material-ui/styles/muiThemeable';
+import {MuiTheme} from 'material-ui/styles';
+import {Toolbar, ToolbarGroup, ToolbarSeparator, ToolbarTitle} from 'material-ui/Toolbar';
+import IconButton from 'material-ui/IconButton';
+import Dialog from 'material-ui/Dialog';
+import FlatButton from 'material-ui/FlatButton';
+import FloatingActionButton from 'material-ui/FloatingActionButton';
+import Popover from 'material-ui/Popover';
+import Menu from 'material-ui/Menu';
+import DropDownMenu from 'material-ui/DropDownMenu';
+
 import {blue500, red500, green500, lime500} from 'material-ui/styles/colors';
 import {IssueGroupByTypes, IIssueBrowserState,IInspectResultsSummary,IssueIconType,IIssue,IIssueType,IGroup,IItem,IOriginalData,IssueBrowserActionDispatcher} from './IssueBrowserReducer';
 import {RouteComponentProps} from 'react-router-dom';
 
+var thema = lightBaseTheme;
 
 export interface IIssueBrowserProps extends IIssueBrowserState,RouteComponentProps<any>
 {
@@ -31,6 +47,7 @@ export interface IIssueBrowserProps extends IIssueBrowserState,RouteComponentPro
   hostWidth?:number;
   hostHeight?:number;
   selectedThermaId?:number;
+  muiThema?: MuiTheme;
 }
 
 class IssueBrowser extends Component<IIssueBrowserProps> {
@@ -124,10 +141,12 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
   }
 
   expandComponent(row:any):any{
+    var isLargeData = row.items.length > 10;
     return (
       <BootstrapTable 
         data={ row.items }
         striped
+        pagination={isLargeData}
         selectRow={{
           mode: 'radio',
           bgColor: darkBaseTheme.palette.primary2Color,
@@ -140,11 +159,11 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
           selected: [this.props.selectedIssueId]
         }}
         options={{
-           paginationSize: 3,
-           hideSizePerPage: true,
-           withFirstAndLast: false
+          paginationPosition: 'top',
+          hideSizePerPage: true,
+          withFirstAndLast: false,
+          paginationPanel: this.createNavigationFactory(row.items.length)
         } as Options}
-        pagination
        >
         <TableHeaderColumn isKey dataField='id' hidden>ID</TableHeaderColumn>
         <TableHeaderColumn dataField='name'></TableHeaderColumn>
@@ -159,6 +178,7 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
       <BootstrapTable 
         data={ root.items }
         striped
+        pagination={isLargeData}
         selectRow={{
           mode: 'radio',
           bgColor: darkBaseTheme.palette.primary2Color,
@@ -171,11 +191,11 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
           selected: [this.props.selectedIssueId]
         }}
         options={{
-           paginationSize: 3,
-           hideSizePerPage: true,
-           withFirstAndLast: false
+          paginationPosition: 'top',
+          hideSizePerPage: true,
+          withFirstAndLast: false,
+          paginationPanel: this.createNavigationFactory(root.items.length)
         } as Options}
-        pagination = {isLargeData}
        >
         <TableHeaderColumn isKey dataField='id' hidden>ID</TableHeaderColumn>
         <TableHeaderColumn dataField='name'></TableHeaderColumn>
@@ -190,9 +210,10 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
         striped
         expandableRow={ (row)=>true }
         expandComponent={ this.createExpandComponent }
-        pagination = {isLargeData}
+        pagination={isLargeData}
         options={{
           paginationPosition: 'top',
+          paginationPanel: this.createNavigationFactory(root.subGroups.length),
           expanding: root.expandedChildren
           } as Options}
         selectRow={{
@@ -223,6 +244,35 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
       return this.createIssueElement(target);
     }
   }
+  createNavigationFactory(totalCount:number) : (props:any)=>any
+  {
+    let renderPaginationPanel = (props:any) => {
+      let curPageNo = props.currPage;
+      let pageStartIndex = props.pageStartIndex;
+      let sizePerPage = props.sizePerPage;
+      let totalPageCount = Math.floor(totalCount / sizePerPage) + 1;
+      return (
+        <div>
+          <div>
+            <FlatButton style={this.navigationButtonStyle} onTouchTap={ () => props.changePage(1) }>|&lt;</FlatButton>
+            {
+              Array.apply(null, {length: 5}).map((val:any,index:number)=>{
+                let pageNo = curPageNo + index-2;
+                let disabled = pageNo <= 0 || totalPageCount < pageNo;
+                return (
+                  <FlatButton 
+                    disabled={disabled }
+                    style={this.navigationButtonStyle} 
+                    onTouchTap={ () => props.changePage(pageNo) }>{disabled?"-":pageNo}</FlatButton>);
+              })
+            }
+            <FlatButton style={this.navigationButtonStyle} onTouchTap={ () => props.changePage(totalPageCount) }>&gt;|</FlatButton>
+          </div>
+        </div>
+      );
+    }
+    return renderPaginationPanel;
+  }
 
   createIssueTreeElement(root: IGroup):any{
     return (
@@ -231,11 +281,13 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
         striped
         expandableRow={ (row)=>true }
         expandComponent={ this.createExpandComponent }
-        pagination
         maxHeight={(this.props.hostHeight - 24-64-72-72-128) + "px"}
+        pagination
         options={{
           paginationPosition: 'top',
-          expanding: root.expandedChildren
+          sizePerPage:10,
+          expanding: root.expandedChildren,
+          paginationPanel: this.createNavigationFactory(root.subGroups.length)
           } as Options}
         selectRow={{
           mode:'radio',
@@ -253,12 +305,85 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
       </BootstrapTable>
     );
   }
+  activeToggleButtonStyle:any = {width:"36px", minWidth:"36px", margin:"4px", backgroundColor:thema.palette.clockCircleColor};
+  inactiveToggleButtonStyle:any = {width:"36px", minWidth:"36px", margin:"4px"};
+  navigationButtonStyle:any = {width:"36px", minWidth:"36px", margin:"4px"};
 
   render() {
     return (
       <div>
         <div style={{float: "left", width: "40%", height: "100%"}}>
-          <SelectField
+          <Toolbar style={{backgroundColor:darkBaseTheme.palette.clockCircleColor}} >
+            <ToolbarGroup firstChild={true}>
+              <SelectField
+                floatingLabelText="Revisions"
+                value={this.props.selectedRevision.id}
+                onChange={(event:any, index:number, value:string)=>this.props.actions.onChangedRevision(index)}
+                style={{height:"72px"}}>
+              {this.props.revisions.revisionInfos.map(revision=>{
+                return (<MenuItem 
+                  key={"Revision_" + revision.id}
+                  value={revision.id} 
+                  primaryText={revision.caption} 
+                  rightAvatar={<Badge badgeContent={revision.issueCount} primary={true}/>} />)
+              })}
+              </SelectField>
+            </ToolbarGroup>
+            <ToolbarGroup>
+              <SelectField
+                floatingLabelText="Issues filter"
+                value={this.props.diffMode}
+                onChange={(event:any, index:number, value:number)=>this.props.actions.onChangeDiffMode(value)}
+                style={{height:"72px"}}
+              >
+                <MenuItem value={0} primaryText="All issues" />
+                <MenuItem value={1} primaryText="Incresed issues from previous revision" />
+                <MenuItem value={2} primaryText="Incresed issues from first revision" />
+                <MenuItem value={3} primaryText="Fixed issues from previous revision" />
+                <MenuItem value={4} primaryText="Fixed issues from first revision" />
+              </SelectField>
+            </ToolbarGroup>
+          </Toolbar>
+          <Toolbar style={{backgroundColor:darkBaseTheme.palette.clockCircleColor}}>
+            <ToolbarGroup firstChild={true}>
+              <SelectField
+                floatingLabelText="Issues Group By"
+                value={this.props.issuesGroupBy}
+                onChange={(event:any, index:number, value:number)=>this.props.actions.onChangeIssuesGroupBy(value)}
+                style={{height:"72px"}}
+              >
+                <MenuItem value={1} primaryText="Directory and File" />
+                <MenuItem value={2} primaryText="Issue Type" />
+                <MenuItem value={3} primaryText="Issue Category" />
+              </SelectField>
+
+              <FlatButton 
+                style={this.props.showErrorIssues?this.activeToggleButtonStyle:this.inactiveToggleButtonStyle} 
+                icon={<ErrorIcon color={red500}/>}
+                onTouchTap={()=>this.props.actions.onToggleShowErrorIssues()}/>
+              <FlatButton 
+                style={this.props.showWarningIssues?this.activeToggleButtonStyle:this.inactiveToggleButtonStyle} 
+                icon={<WarningIcon color={lime500}/>}
+                onTouchTap={()=>this.props.actions.onToggleShowWarningIssues()}/>
+              <FlatButton 
+                style={this.props.showSuggestionIssues?this.activeToggleButtonStyle:this.inactiveToggleButtonStyle} 
+                icon={<InfoIcon color={green500}/>}
+                onTouchTap={()=>this.props.actions.onToggleShowSuggestionIssues()}/>
+              <FlatButton 
+                style={this.props.showHintIssues?this.activeToggleButtonStyle:this.inactiveToggleButtonStyle} 
+                icon={<InfoIcon color={blue500}/>}
+                onTouchTap={()=>this.props.actions.onToggleShowHintIssues()}/>
+            </ToolbarGroup>
+            <ToolbarGroup>
+              <IconButton>
+                <ArrowUpIcon />
+              </IconButton>
+              <IconButton>
+                <ArrowDownIcon />
+              </IconButton>
+            </ToolbarGroup>
+          </Toolbar>
+          {/*<SelectField
             floatingLabelText="Diff Base Rev"
             value={this.props.selectedDiffBaseRevision.id}
             onChange={(event:any, index:number, value:string)=>this.props.actions.onChangedDiffBaseRevision(index)}
@@ -271,11 +396,32 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
               primaryText={revision.caption} 
               rightAvatar={<Badge badgeContent={revision.issueCount} primary={true}/>} />)
           })}
+          </SelectField>*/}
+        <Dialog
+          title="Issue Browser Settings"
+          
+          modal={false}
+          open={false}
+          onRequestClose={()=>{}}
+        >
+
+          <SelectField
+            floatingLabelText="Diff Type"
+            value={this.props.selectedDiffBaseRevision.id}
+            onChange={(event:any, index:number, value:string)=>this.props.actions.onChangedDiffBaseRevision(index)}
+            fullWidth
+            style={{height:"72px"}}>
+            <MenuItem 
+              primaryText="none" />
+            <MenuItem 
+              primaryText="diff from specified revision" />
+            <MenuItem 
+              primaryText="diff from prev revision" />
           </SelectField>
           <SelectField
-            floatingLabelText="Revisions"
-            value={this.props.selectedRevision.id}
-            onChange={(event:any, index:number, value:string)=>this.props.actions.onChangedRevision(index)}
+            floatingLabelText="Diff Base Revision"
+            value={this.props.selectedDiffBaseRevision.id}
+            onChange={(event:any, index:number, value:string)=>this.props.actions.onChangedDiffBaseRevision(index)}
             fullWidth
             style={{height:"72px"}}>
           {this.props.revisions.revisionInfos.map(revision=>{
@@ -286,16 +432,8 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
               rightAvatar={<Badge badgeContent={revision.issueCount} primary={true}/>} />)
           })}
           </SelectField>
-          <SelectField
-            floatingLabelText="Issues Group By"
-            value={this.props.issuesGroupBy}
-            onChange={(event:any, index:number, value:number)=>this.props.actions.onChangeIssuesGroupBy(value)}
-            style={{height:"72px"}}
-          >
-            <MenuItem value={1} primaryText="Directory and File" />
-            <MenuItem value={2} primaryText="Issue Type" />
-            <MenuItem value={3} primaryText="Issue Category" />
-          </SelectField>
+        </Dialog>
+
           <div style={{height:(this.props.hostHeight - 24-64-72-72) + "px"}}>
             {this.createIssueTreeElement(this.props.tree)}
           </div>
@@ -311,15 +449,16 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
             Id:{this.props.selectedIssue.id}<br/>
             Message:{this.props.selectedIssue.message}<br/>
             Project:{this.props.selectedIssue.project}<br/>
-            File:{this.props.selectedIssue.file}<br/>
-            Line:{this.props.selectedIssue.line}<br/>
-            Column:{this.props.selectedIssue.column}<br/>
+            File:{this.props.selectedIssue.file} ({this.props.selectedIssue.line}:{this.props.selectedIssue.column})<br/>
             Url:<a target="_blank" href={this.props.selectedIssueType.wikiUrl}>{this.props.selectedIssueType.wikiUrl}</a><br/>
           </Paper>
         </div>
+
+
       </div>
     );
   }
+  mode:number = 0;
 }
 
-export default IssueBrowser;
+export default muiThemeable()(IssueBrowser);

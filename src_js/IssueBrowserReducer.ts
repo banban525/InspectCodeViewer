@@ -18,6 +18,11 @@ export interface IIssueBrowserState{
   selectedDiffBaseRevision: IRevisionInfo;
   revisions?:IInspectResultsSummary;
   selectedThermaId?:number;
+  diffMode?:number;
+  showErrorIssues?:boolean;
+  showWarningIssues?:boolean;
+  showSuggestionIssues?:boolean;
+  showHintIssues?:boolean;
 }
 export interface IInspectResultsSummary
 {
@@ -120,7 +125,7 @@ export class IssueBrowserActionDispatcher
 
   onChangedDiffBaseRevision(index:number):void{
     this.dispatch({type:"onChangedDiffBaseRevision", index:index});
-    
+
     var selectedRevision = this.getState().revisions.revisionInfos[index];
 
     this.myAjax(`./revisions/${selectedRevision.id}/data.js`, (data:IOriginalData)=>{
@@ -135,6 +140,21 @@ export class IssueBrowserActionDispatcher
   }
   onSelectedIssueGroup(parent:IGroup, row:any):void{
     this.dispatch( {type:"onSelectedIssueGroup", parent:parent, row:row});
+  }
+  onChangeDiffMode(value:number):void{
+    this.dispatch({type:"onChangeDiffMode", value:value});
+  }
+  onToggleShowErrorIssues():void{
+    this.dispatch({type:'onToggleShowErrorIssues'});
+  }
+  onToggleShowWarningIssues():void{
+    this.dispatch({type:'onToggleShowWarningIssues'});
+  }
+  onToggleShowSuggestionIssues():void{
+    this.dispatch({type:'onToggleShowSuggestionIssues'});
+  }
+  onToggleShowHintIssues():void{
+    this.dispatch({type:'onToggleShowHintIssues'});
   }
 }
 
@@ -174,7 +194,7 @@ const initialIssueBrowserState: IIssueBrowserState = {
     issues:[],
     issueTypes:[]
   },
-  tree: createTree([], [], [], IssueGroupByTypes.IssueType),
+  tree: createTree([], [], [], IssueGroupByTypes.IssueType, true,true,true,true),
   revisions:{
     revisionInfos:[]
   },
@@ -187,7 +207,12 @@ const initialIssueBrowserState: IIssueBrowserState = {
     id:"",
     issueCount:0,
     caption:""
-  }
+  },
+  diffMode:0,
+  showErrorIssues:true,
+  showWarningIssues:true,
+  showSuggestionIssues:true,
+  showHintIssues:true
 };
 
 
@@ -211,10 +236,39 @@ function toIconType(severity:string):IssueIconType
   }
   return IssueIconType.none;
 }
-function createTree(issues:IIssue[], diffBaseIssues:IIssue[], issueTypes:IIssueType[], issueGroupBy:IssueGroupByTypes): IGroup{
+
+function createTree(
+  issues:IIssue[], 
+  diffBaseIssues:IIssue[], 
+  issueTypes:IIssueType[], 
+  issueGroupBy:IssueGroupByTypes,
+  showErrorIssues:boolean,
+  showWarningIssues:boolean,
+  showSuggestionIssues:boolean,
+  showHintIssues:boolean): IGroup
+  {
+
   let targetIssues:IIssue[] = issues.filter(issue=>{
     return !diffBaseIssues.some((value) => value.id === issue.id);
   })
+  let filteredIssueTypes = issueTypes;
+  if(showErrorIssues === false)
+  {
+    filteredIssueTypes = filteredIssueTypes.filter(issueType=>issueType.severity !== "ERROR");
+  }
+  if(showWarningIssues === false)
+  {
+    filteredIssueTypes = filteredIssueTypes.filter(issueType=>issueType.severity !== "WARNING");
+  }
+  if(showSuggestionIssues === false)
+  {
+    filteredIssueTypes = filteredIssueTypes.filter(issueType=>issueType.severity !== "SUGGESTION");
+  }
+  if(showHintIssues === false)
+  {
+    filteredIssueTypes = filteredIssueTypes.filter(issueType=>issueType.severity !== "HINT");
+  }
+  targetIssues = targetIssues.filter(issue=>filteredIssueTypes.some(issueType=>issueType.id === issue.typeId));
 
   if(issueGroupBy === IssueGroupByTypes.IssueType)
   {
@@ -398,7 +452,12 @@ export function IssueBrowserReducer(state: IIssueBrowserState = initialIssueBrow
       state.currentData.issues, 
       state.diffBaseData.issues, 
       state.currentData.issueTypes, 
-      action.value);
+      action.value,
+      state.showErrorIssues,
+      state.showWarningIssues,
+      state.showSuggestionIssues,
+      state.showHintIssues
+      );
     return objectAssign({}, state, {issuesGroupBy:action.value, tree:newtree});
   case 'onSelectedIssueId':
     if(action.value.match(/^ISSUE_/) !== null)
@@ -430,7 +489,11 @@ export function IssueBrowserReducer(state: IIssueBrowserState = initialIssueBrow
       data.issues, 
       state.diffBaseData.issues,
       data.issueTypes, 
-      state.issuesGroupBy);
+      state.issuesGroupBy,
+      state.showErrorIssues,
+      state.showWarningIssues,
+      state.showSuggestionIssues,
+      state.showHintIssues);
 
     tree.expandedChildren = [tree.subGroups[0].id]
     
@@ -452,7 +515,11 @@ export function IssueBrowserReducer(state: IIssueBrowserState = initialIssueBrow
       state.currentData.issues, 
       diffBaseData.issues,
       state.currentData.issueTypes, 
-      state.issuesGroupBy);
+      state.issuesGroupBy,
+      state.showErrorIssues,
+      state.showWarningIssues,
+      state.showSuggestionIssues,
+      state.showHintIssues);
 
     return objectAssign({}, state, {
       diffBaseData:diffBaseData,
@@ -491,6 +558,52 @@ export function IssueBrowserReducer(state: IIssueBrowserState = initialIssueBrow
     var newParent = objectAssign({}, action.parent,{expandedChildren:newExpandedChildren});
     var newTree = updateGroups(state.tree, newParent);
     return objectAssign({}, state, {tree:newTree});
+  case 'onChangeDiffMode':
+    return objectAssign({}, state,{diffMode:action.value});
+  case 'onToggleShowErrorIssues':
+    var tree = createTree(
+      state.currentData.issues, 
+      state.diffBaseData.issues,
+      state.currentData.issueTypes, 
+      state.issuesGroupBy,
+      !state.showErrorIssues,
+      state.showWarningIssues,
+      state.showSuggestionIssues,
+      state.showHintIssues);
+    return objectAssign({}, state,{showErrorIssues:!state.showErrorIssues, tree:tree});
+  case 'onToggleShowWarningIssues':
+    var tree = createTree(
+      state.currentData.issues, 
+      state.diffBaseData.issues,
+      state.currentData.issueTypes, 
+      state.issuesGroupBy,
+      state.showErrorIssues,
+      !state.showWarningIssues,
+      state.showSuggestionIssues,
+      state.showHintIssues);
+    return objectAssign({}, state,{showWarningIssues:!state.showWarningIssues, tree:tree});
+  case 'onToggleShowSuggestionIssues':
+    var tree = createTree(
+      state.currentData.issues, 
+      state.diffBaseData.issues,
+      state.currentData.issueTypes, 
+      state.issuesGroupBy,
+      state.showErrorIssues,
+      state.showWarningIssues,
+      !state.showSuggestionIssues,
+      state.showHintIssues);
+    return objectAssign({}, state,{showSuggestionIssues:!state.showSuggestionIssues, tree:tree});
+  case 'onToggleShowHintIssues':
+    var tree = createTree(
+      state.currentData.issues, 
+      state.diffBaseData.issues,
+      state.currentData.issueTypes, 
+      state.issuesGroupBy,
+      state.showErrorIssues,
+      state.showWarningIssues,
+      state.showSuggestionIssues,
+      !state.showHintIssues);
+    return objectAssign({}, state,{showHintIssues:!state.showHintIssues, tree:tree});
   default:
     return state;
   }
