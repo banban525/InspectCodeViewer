@@ -55,9 +55,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="LabSolutionsMV.inspectcode.xml">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
     <EmbeddedResource Include="template.html" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

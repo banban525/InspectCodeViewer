@@ -27,21 +27,23 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "js", "js", "{9D109DCF-01AE-41C0-BFFC-A2F281ACCC62}"
 	ProjectSection(SolutionItems) = preProject
 		src_html\js\code.js = src_html\js\code.js
-		src_html\js\syntaxhighlighter.js = src_html\js\syntaxhighlighter.js
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "css", "css", "{24D4EB1F-D84A-4416-8C17-6D138FDB51E8}"
 	ProjectSection(SolutionItems) = preProject
-		src_html\css\darkTheme.css = src_html\css\darkTheme.css
 		src_html\css\style.css = src_html\css\style.css
-		src_html\css\theme.css = src_html\css\theme.css
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src_js", "src_js", "{E9190BC4-0269-4C44-AA9E-216F4B9C8BD0}"
 	ProjectSection(SolutionItems) = preProject
 		src_js\App.tsx = src_js\App.tsx
+		src_js\AppReducer.ts = src_js\AppReducer.ts
 		src_js\Index.tsx = src_js\Index.tsx
+		src_js\IssueBrowser.tsx = src_js\IssueBrowser.tsx
+		src_js\IssueBrowserReducer.ts = src_js\IssueBrowserReducer.ts
 		src_js\SelectableList.tsx = src_js\SelectableList.tsx
+		src_js\Summary.tsx = src_js\Summary.tsx
+		src_js\SummaryReducer.ts = src_js\SummaryReducer.ts
 	EndProjectSection
 EndProject
 Global
