@@ -83,7 +83,7 @@ function mapSummaryStateToProps(state : any, ownProps:RouteComponentProps<any>):
 
 function mapSummaryDispatchToProps(dispatch: any):any {
   return {
-    actions:new SummaryActionDispatcher(dispatch, ()=>(store.getState() as any).SummaryReducer as ISummaryState)
+    actions:new SummaryActionDispatcher(dispatch, ()=>(store.getState() as any).SummaryReducer as ISummaryState, myAjax)
   }
 }
 

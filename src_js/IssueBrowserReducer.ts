@@ -1,10 +1,6 @@
 import * as objectAssign from 'object-assign';
+import {IssueGroupByTypes, IIssue, IIssueType, IOriginalData, IRevisionInfo, IInspectResultsSummary} from "./CommonData"
 
-export enum IssueGroupByTypes{
-  ProjectAndFile = 1,
-  IssueType = 2,
-  IssueCategory = 3,
-}
 export interface IIssueBrowserState{
   issuesGroupBy?:IssueGroupByTypes;
   selectedIssueId?:string;
@@ -24,40 +20,7 @@ export interface IIssueBrowserState{
   showSuggestionIssues?:boolean;
   showHintIssues?:boolean;
 }
-export interface IInspectResultsSummary
-{
-  revisionInfos:IRevisionInfo[]
-}
-export interface IRevisionInfo{
-  id:string;
-  caption:string;
-  issueCount:number;
-}
 
-export interface IIssueType{
-  id:string;
-  category:string;
-  categoryId:string;
-  description:string;
-  severity:string;
-  wikiUrl:string;
-}
-
-export interface IIssue{
-  id:string;
-  typeId:string;
-  file:string;
-  offset:string;
-  line:string;
-  message:string;
-  project:string;
-  column:number;
-}
-
-export interface IOriginalData{
-  issueTypes:IIssueType[];
-  issues:IIssue[];
-}
 export enum IssueIconType
 {
   none,

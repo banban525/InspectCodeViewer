@@ -36,7 +36,8 @@ import Menu from 'material-ui/Menu';
 import DropDownMenu from 'material-ui/DropDownMenu';
 
 import {blue500, red500, green500, lime500} from 'material-ui/styles/colors';
-import {IssueGroupByTypes, IIssueBrowserState,IInspectResultsSummary,IssueIconType,IIssue,IIssueType,IGroup,IItem,IOriginalData,IssueBrowserActionDispatcher} from './IssueBrowserReducer';
+import {IssueGroupByTypes, IInspectResultsSummary,IIssue,IIssueType,IOriginalData} from './CommonData';
+import { IIssueBrowserState,IssueIconType,IGroup,IItem,IssueBrowserActionDispatcher} from './IssueBrowserReducer';
 import {RouteComponentProps} from 'react-router-dom';
 
 var thema = lightBaseTheme;
