@@ -17,13 +17,20 @@ namespace InspectCodeVisualizer
     {
         static void Main(string[] args)
         {
+            var options = new Options();
+            var isValid = CommandLine.Parser.Default.ParseArgumentsStrict(args, options);
+            if (isValid == false)
+            {
+                return;
+            }
+
             //var inputFile = args[0];
-            var inputFile = @"C:\work\InspectCodeVisualizer\inspectCodeResult.xml";
-            var programBaseDir = @"C:\work\NoahsArk\Source";
-            var inspectId = Guid.NewGuid().ToString("N");
+            var inputFile = options.Input;
+            var programBaseDir = options.ProgramBaseDirectory;
+            var inspectId = options.Id;
             var lastWriteTime = new FileInfo(inputFile).LastWriteTime;
-            var caption = $"{lastWriteTime:yyyy-MM-dd}({inspectId.Substring(0, 8)})";
-            var outputBaseDir = @"C:\work\InspectCodeVisualizer\bin\revisions";
+            var caption = options.Title;
+            var outputBaseDir = options.OutputDirectory;
 
             Report report;
             using (var fileStream = new FileStream(inputFile, FileMode.Open))
@@ -59,7 +66,6 @@ namespace InspectCodeVisualizer
             // Prepare output directories.
             var outputDir = Path.Combine(outputBaseDir, inspectId);
             var dataFilePath = Path.Combine(outputDir, "data.js");
-            var summaryFilePath = Path.Combine(outputBaseDir, "summary.js");
             var codeDir = Path.Combine(outputDir, "codes");
             {
                 if (Directory.Exists(outputDir))
@@ -122,30 +128,6 @@ namespace InspectCodeVisualizer
                 }
             }
 
-            // Update summary json
-            {
-                var list = new List<RevisionInfo>();
-                var directories = Directory.GetDirectories(outputBaseDir, "*", SearchOption.TopDirectoryOnly);
-                foreach (var directory in directories)
-                {
-                    var dataJsFilePath = Path.Combine(directory, "data.js");
-                    if (File.Exists(dataJsFilePath) == false)
-                    {
-                        continue;
-                    }
-                    InspectResults inspcResults;
-                    using (var reader = new StreamReader(dataJsFilePath, Encoding.UTF8))
-                    {
-                        reader.ReadLine();  //ignore first line.
-                        var json = reader.ReadToEnd();
-                        inspcResults = InspectResults.Deserialize(json);
-                    }
-                    list.Add(inspcResults.MetaInfo);
-                }
-                var summary = new InspectResultsSummary(list.ToArray());
-                var summaryJson = InspectResultsSummary.Serialize(summary);
-                File.WriteAllText(summaryFilePath, "var __data = \r\n" + summaryJson, Encoding.UTF8);
-            }
         }
 
         static string CreateId(Issue issue, string baseDir)
@@ -250,7 +232,7 @@ namespace InspectCodeVisualizer
 
 
     [DataContract]
-    class InspectResults
+    public class InspectResults
     {
         public InspectResults(Issue[] issues, IssueType[] issueTypess, RevisionInfo metaInfo)
         {
@@ -293,7 +275,7 @@ namespace InspectCodeVisualizer
     }
 
     [DataContract]
-    class InspectResultsSummary
+    public class InspectResultsSummary
     {
         public InspectResultsSummary(RevisionInfo[] revisionInfos)
         {
@@ -326,15 +308,41 @@ namespace InspectCodeVisualizer
         }
     }
 
-    [DataContract]
-    class RevisionInfo
+
+[DataContract]
+    public class RevisionInfo
     {
-        public RevisionInfo(string inspectId, string caption, string dateTime, int issueCount)
+        public RevisionInfo(
+            string inspectId, 
+            string caption, 
+            string dateTime, 
+            int issueCount)
         {
             InspectId = inspectId;
             Caption = caption;
             DateTime = dateTime;
             IssueCount = issueCount;
+        }
+        public RevisionInfo(
+            string inspectId,
+            string caption,
+            string dateTime,
+            int issueCount,
+            RevisionIssuesInfo current,
+            RevisionIssuesInfo incresedFromPrevious,
+            RevisionIssuesInfo incresedFromFirst,
+            RevisionIssuesInfo fixedFromPrevious,
+            RevisionIssuesInfo fixedFromFirst)
+        {
+            InspectId = inspectId;
+            Caption = caption;
+            DateTime = dateTime;
+            IssueCount = issueCount;
+            Current = current;
+            IncresedFromPrevious = incresedFromPrevious;
+            IncresedFromFirst = incresedFromFirst;
+            FixedFromPrevious = fixedFromPrevious;
+            FixedFromFirst = fixedFromFirst;
         }
 
         [DataMember(Name = "id", Order = 1)]
@@ -348,10 +356,47 @@ namespace InspectCodeVisualizer
 
         [DataMember(Name = "issueCount", Order = 4)]
         public int IssueCount { get; private set; }
+
+        [DataMember(Name = "current", Order = 5)]
+        public RevisionIssuesInfo Current { get; private set; }
+
+        [DataMember(Name = "incresedFromPrevious", Order = 6)]
+        public RevisionIssuesInfo IncresedFromPrevious { get; private set; }
+        [DataMember(Name = "incresedFromFirst", Order = 7)]
+        public RevisionIssuesInfo IncresedFromFirst { get; private set; }
+
+        [DataMember(Name = "fixedFromPrevious", Order = 8)]
+        public RevisionIssuesInfo FixedFromPrevious { get; private set; }
+        [DataMember(Name = "fixedFromFirst", Order = 9)]
+        public RevisionIssuesInfo FixedFromFirst { get; private set; }
+
     }
 
     [DataContract]
-    class IssueType
+    public class RevisionIssuesInfo
+    {
+        public RevisionIssuesInfo(int errorIssuesCount, int warningIssuesCount, int suggestionIssuesCount, int hintIssuesCount)
+        {
+            ErrorIssuesCount = errorIssuesCount;
+            WarningIssuesCount = warningIssuesCount;
+            SuggestionIssuesCount = suggestionIssuesCount;
+            HintIssuesCount = hintIssuesCount;
+        }
+
+        [DataMember(Name = "errorIssuesCount", Order = 1)]
+        public int ErrorIssuesCount { get; private set; }
+        [DataMember(Name = "warningIssuesCount", Order = 1)]
+        public int WarningIssuesCount { get; private set; }
+        [DataMember(Name = "suggestionIssuesCount", Order = 1)]
+        public int SuggestionIssuesCount { get; private set; }
+        [DataMember(Name = "hintIssuesCount", Order = 1)]
+        public int HintIssuesCount { get; private set; }
+
+        public static readonly RevisionIssuesInfo Empty = new RevisionIssuesInfo(0,0,0,0);
+    }
+
+    [DataContract]
+    public class IssueType
     {
         public IssueType(string id, string category, string categoryId, string description, string severity, string wikiUrl, string subCategory)
         {
@@ -388,7 +433,7 @@ namespace InspectCodeVisualizer
 
 
     [DataContract]
-    class Issue
+    public class Issue
     {
         public Issue(string id, string typeId, string file, string offset, string message, ushort line, string project, int column)
         {
