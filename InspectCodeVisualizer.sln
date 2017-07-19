@@ -38,10 +38,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src_js", "src_js", "{E9190B
 	ProjectSection(SolutionItems) = preProject
 		src_js\App.tsx = src_js\App.tsx
 		src_js\AppReducer.ts = src_js\AppReducer.ts
+		src_js\CommonData.ts = src_js\CommonData.ts
 		src_js\Index.tsx = src_js\Index.tsx
 		src_js\IssueBrowser.tsx = src_js\IssueBrowser.tsx
 		src_js\IssueBrowserReducer.ts = src_js\IssueBrowserReducer.ts
-		src_js\SelectableList.tsx = src_js\SelectableList.tsx
 		src_js\Summary.tsx = src_js\Summary.tsx
 		src_js\SummaryReducer.ts = src_js\SummaryReducer.ts
 	EndProjectSection
