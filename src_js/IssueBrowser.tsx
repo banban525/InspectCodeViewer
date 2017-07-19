@@ -431,6 +431,7 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
               value={revision.id} 
               primaryText={revision.caption} 
               rightAvatar={<Badge badgeContent={revision.issueCount} primary={true}/>} />)
+// ReSharper disable TsResolvedFromInaccessibleModule
           })}
           </SelectField>
         </Dialog>
@@ -440,7 +441,7 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
           </div>
           </div>
         <div style={{float: "none", width: "auto", marginLeft: "40%",height:`${this.props.hostHeight - 64}px`}}>
-          <Iframe url={this.getCodePageUri()}
+          <Iframe url={this.getCodePageUri()} // ReSharper ignore TsResolvedFromInaccessibleModule
             width="100%"
             height="70%"
             display="initial"

@@ -35,7 +35,7 @@ store.subscribe(() => console.log(store.getState()));
 
 declare var __data: any;
 function myAjax(url:string, onRecieved:(data:any)=>void):void {
-    var s = document.createElement("script");
+    var s:any = document.createElement("script");
     s.src = url;
     s.onload = () => {
       onRecieved(__data);

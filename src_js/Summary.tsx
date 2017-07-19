@@ -26,7 +26,7 @@ class Summary extends Component<ISummaryProps> {
   render() {
     return (
       <div>
-        <Table>
+        <Table height="600px">
           <TableHeader>
             <TableRow>
               <TableHeaderColumn>ID</TableHeaderColumn>
