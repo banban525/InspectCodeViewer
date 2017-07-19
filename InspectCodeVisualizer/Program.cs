@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
+using System.Security;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
@@ -122,8 +123,8 @@ namespace InspectCodeVisualizer
                     var content = File.ReadAllText(absoleteFilePath, Encoding.UTF8);
                     var htmlFileName = filePath.Replace("\\", "_") + ".html";
                     var htmlFilePath = Path.Combine(codeDir, htmlFileName);
-
-                    var htmlContent = template.Replace("@CODE@", content);
+                    
+                    var htmlContent = template.Replace("@CODE@", SecurityElement.Escape(content));
                     File.WriteAllText(htmlFilePath, htmlContent, Encoding.UTF8);
                 }
             }
