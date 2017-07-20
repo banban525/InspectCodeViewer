@@ -9,7 +9,11 @@
     "module": "es6",
     "jsx": "react",
     "allowJs": true,
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "baseUrl": ".",
+    "paths": {
+      "recharts": ["types/recharts/index.d.ts"]
+    }
   },
   "file": [
     "./src_js/Index.tsx"

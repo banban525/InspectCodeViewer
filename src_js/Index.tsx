@@ -78,6 +78,10 @@ function mapSummaryStateToProps(state : any, ownProps:RouteComponentProps<any>):
   return objectAssign(
     {},
     state.SummaryReducer,
+    {
+      hostWidth:state.AppReducer.hostWidth, 
+      hostHeight:state.AppReducer.hostHeight
+    },
     ownProps);
 }
 
@@ -115,6 +119,8 @@ ReactDOM.render(
         <AppComponent>
           <Switch>
             <Route exact path="/" component={SummaryContainer}/>
+            <Route exact path="/issues/:revid/:issueid/" component={IssueBrowserContainer}/>
+            <Route exact path="/issues/:revid/" component={IssueBrowserContainer}/>
             <Route exact path="/issues" component={IssueBrowserContainer}/>
           </Switch>
         </AppComponent>

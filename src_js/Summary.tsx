@@ -11,10 +11,14 @@ import {
   TableRow,
   TableRowColumn,
 } from 'material-ui/Table';
+import {AreaChart, XAxis, YAxis, CartesianGrid, Tooltip, Area} from 'recharts';
+import {blue500, red500, green500, lime500} from 'material-ui/styles/colors';
 
 export interface ISummaryProps extends ISummaryState,RouteComponentProps<any>
 {
   actions?:SummaryActionDispatcher;
+  hostWidth?:number;
+  hostHeight?:number;
 }
 
 class Summary extends Component<ISummaryProps> {
@@ -26,7 +30,20 @@ class Summary extends Component<ISummaryProps> {
   render() {
     return (
       <div>
-        <Table height="600px">
+        <AreaChart 
+          width={this.props.hostWidth/2}
+          height={(this.props.hostHeight-64)/2-32}
+          data={this.props.originalData.revisionInfos}
+        >
+          <XAxis dataKey="id"/>
+          <YAxis/>
+          <CartesianGrid strokeDasharray="3 3"/>
+          <Area type='monotone' dataKey='current.errorIssuesCount' stackId="1" stroke='#8884d8' fill={red500} />
+          <Area type='monotone' dataKey='current.warningIssuesCount' stackId="1" stroke='#82ca9d' fill={lime500} />
+          <Area type='monotone' dataKey='current.suggestionIssuesCount' stackId="1" stroke='#ffc658' fill={green500} />
+          <Area type='monotone' dataKey='current.hintIssuesCount' stackId="1" stroke='#ffc658' fill={blue500} />
+        </AreaChart>
+        <Table height={((this.props.hostHeight-64)/2-32) + "px"}>
           <TableHeader>
             <TableRow>
               <TableHeaderColumn>ID</TableHeaderColumn>
