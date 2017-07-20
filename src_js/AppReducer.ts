@@ -1,5 +1,3 @@
-import {Store} from 'redux';
-import App from './App';
 import * as objectAssign from 'object-assign';
 
 
@@ -41,12 +39,11 @@ const initialAppState: IAppState = {
   hostWidth:window.innerWidth, 
   hostHeight:window.innerHeight,
   selectedThermaId:Number(localStorage["InspectCodeViewer.themaId"] || 0),
-  isDrawerOpened:false,
-  
+  isDrawerOpened:false
 };
 
 
-export function AppReducer(state: IAppState = initialAppState, action: any) {
+export function appReducer(state: IAppState = initialAppState, action: any) {
   switch (action.type) 
   {
   case 'onResized':

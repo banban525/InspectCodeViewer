@@ -15,7 +15,7 @@ import * as objectAssign from 'object-assign';
 
 import App from "./App";
 import {IAppProps} from "./App";
-import {AppReducer, AppActionDispatcher,IAppState} from "./AppReducer"
+import {appReducer as AppReducer, AppActionDispatcher,IAppState} from "./AppReducer"
 import IssueBrowser from './IssueBrowser';
 import {IssueBrowserReducer, IssueBrowserActionDispatcher, IIssueBrowserState} from "./IssueBrowserReducer";
 import {IIssueBrowserProps} from './IssueBrowser';

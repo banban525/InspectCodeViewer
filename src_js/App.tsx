@@ -1,20 +1,17 @@
 import * as React from "react";
-import { Component, StatelessComponent } from "react";
+import { Component } from "react";
 import SelectField from 'material-ui/SelectField';
 import MenuItem from 'material-ui/MenuItem';
 import getMuiTheme from "material-ui/styles/getMuiTheme";
 import MuiThemeProvider from "material-ui/styles/MuiThemeProvider";
-import * as objectAssign from 'object-assign';
 import darkBaseTheme from 'material-ui/styles/baseThemes/darkBaseTheme';
 import lightBaseTheme from 'material-ui/styles/baseThemes/lightBaseTheme';
 import Paper from 'material-ui/Paper';
 import AppBar from 'material-ui/AppBar';
 import "jquery";
 import {IAppState,AppActionDispatcher} from './AppReducer';
-import {RouteComponentProps} from 'react-router-dom';
 import Drawer from 'material-ui/Drawer';
 import * as H from 'history';
-import {Link} from 'react-router-dom';
 
 export interface IAppProps extends IAppState
 {
@@ -77,7 +74,7 @@ class App extends Component<IAppProps> {
             this.props.actions.onOpenSummaryPage();
             }}>Summary</MenuItem>
           <MenuItem onTouchTap={()=>{
-            this.history.push("/issues")
+            this.history.push("/issues");
             this.props.actions.onOpenIssueBrowerPage();
             }}>Issues</MenuItem>
         </Drawer>

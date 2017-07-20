@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -16,13 +15,13 @@ namespace InspectCodeVisualizer
 {
     class Program
     {
-        static void Main(string[] args)
+        static int Main(string[] args)
         {
             var options = new Options();
             var isValid = CommandLine.Parser.Default.ParseArgumentsStrict(args, options);
             if (isValid == false)
             {
-                return;
+                return 1;
             }
 
             //var inputFile = args[0];
@@ -100,16 +99,16 @@ namespace InspectCodeVisualizer
             // Output issues json data.
             {
                 var jsonContent = InspectResults.Serialize(inspectResults);
-                var temP = InspectResults.Deserialize(jsonContent);
                 File.WriteAllText(dataFilePath, "var __data = \r\n" + jsonContent, Encoding.UTF8);
             }
 
             // Output source code html
             {
-                var template = "";
+                string template;
                 using (var stream = Assembly.GetExecutingAssembly()
                     .GetManifestResourceStream("InspectCodeVisualizer.template.html"))
                 {
+                    // ReSharper disable once AssignNullToNotNullAttribute
                     template = new StreamReader(stream).ReadToEnd();
                 }
 
@@ -128,7 +127,8 @@ namespace InspectCodeVisualizer
                     File.WriteAllText(htmlFilePath, htmlContent, Encoding.UTF8);
                 }
             }
-
+            
+            return 0;
         }
 
         static string CreateId(Issue issue, string baseDir)
@@ -159,7 +159,7 @@ namespace InspectCodeVisualizer
             var stringWriter = new StringWriter();
 
             serializer.WriteObject(new XmlTextWriter(stringWriter), issueForHash);
-            return GetMD5HashString(stringWriter.ToString());
+            return GetMd5HashString(stringWriter.ToString());
         }
 
         public static int GetColumnNo(Issue issue, string baseDir)
@@ -173,13 +173,13 @@ namespace InspectCodeVisualizer
             {
                 content = File.ReadAllText(fullPath);
             }
-            var lastLfOffset = content.LastIndexOf("\n", offsetStart);
+            var lastLfOffset = content.LastIndexOf("\n", offsetStart, StringComparison.Ordinal);
             var lineOffset = offsetStart - (lastLfOffset + 1);
             
             return lineOffset;
         }
 
-        public static string GetMD5HashString(string text)
+        public static string GetMd5HashString(string text)
         {
             // 文字列をバイト型配列に変換する
             byte[] data = Encoding.UTF8.GetBytes(text);
@@ -310,7 +310,7 @@ namespace InspectCodeVisualizer
     }
 
 
-[DataContract]
+    [DataContract]
     public class RevisionInfo
     {
         public RevisionInfo(
