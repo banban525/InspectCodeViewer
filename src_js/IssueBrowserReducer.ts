@@ -21,6 +21,14 @@ export interface IIssueBrowserState{
   showHintIssues?:boolean;
 }
 
+export enum DiffMode{
+  Normal = 0,
+  IncresedFromPrevious = 1,
+  IncresedFromFirst = 2,
+  FixedFromPrevious = 3,
+  FixedFromFirst = 4
+}
+
 export enum IssueIconType
 {
   none,
@@ -77,11 +85,12 @@ export class IssueBrowserActionDispatcher
     this.dispatch( {type:"onTouchTapListGroup", selectedGroup:selectedGroup});
   }
   onChangedRevision(index:number):void{
-    this.dispatch({type:"onChangedRevision", index:index});
+    this.onChangedRevisionId(this.getState().revisions.revisionInfos[index].id);
+  }
+  onChangedRevisionId(revisionId:string):void{
+    this.dispatch({type:"onChangedRevisionId", revisionId:revisionId});
     
-    var selectedRevision = this.getState().revisions.revisionInfos[index];
-
-    this.myAjax(`./revisions/${selectedRevision.id}/data.js`, (data:IOriginalData)=>{
+    this.myAjax(`./revisions/${revisionId}/data.js`, (data:IOriginalData)=>{
       this.dispatch( {type:"revievedRevisionData", data:data});
     }); 
   }
@@ -118,6 +127,9 @@ export class IssueBrowserActionDispatcher
   }
   onToggleShowHintIssues():void{
     this.dispatch({type:'onToggleShowHintIssues'});
+  }
+  setIssuesFilter(error:boolean, warning:boolean, suggestion:boolean, hint:boolean){
+    this.dispatch({type:'setIssuesFilter', error:error, warning:warning, suggestion:suggestion, hint:hint});
   }
 }
 
@@ -442,10 +454,14 @@ export function IssueBrowserReducer(state: IIssueBrowserState = initialIssueBrow
     var newTree = updateGroups(state.tree, newSelectedGroup);
     return objectAssign({}, state, {tree: newTree});
 
-  case 'onChangedRevision':
-    var selectedRevision = state.revisions.revisionInfos[action.index];
-
+  case 'onChangedRevisionId':
+    var selectedRevision = state.revisions.revisionInfos.filter(rev=>rev.id === action.revisionId)[0];
+    if(selectedRevision === undefined)
+    {
+      return state;
+    }
     return objectAssign({}, state, {selectedRevision:selectedRevision});
+    
   case 'revievedRevisionData':
     var data:IOriginalData = action.data;
     var tree = createTree(
@@ -567,6 +583,24 @@ export function IssueBrowserReducer(state: IIssueBrowserState = initialIssueBrow
       state.showSuggestionIssues,
       !state.showHintIssues);
     return objectAssign({}, state,{showHintIssues:!state.showHintIssues, tree:tree});
+  case 'setIssuesFilter':
+    var tree = createTree(
+      state.currentData.issues, 
+      state.diffBaseData.issues,
+      state.currentData.issueTypes, 
+      state.issuesGroupBy,
+      action.error,
+      action.warning,
+      action.suggestion,
+      action.hint);
+    return objectAssign({}, state, {
+      showErrorIssues:action.error,
+      showWarningIssues:action.warning,
+      showSuggestionIssues:action.suggestion,
+      showHintIssues:action.hint,
+      tree:tree
+    });
+
   default:
     return state;
   }

@@ -4,6 +4,15 @@ export enum IssueGroupByTypes{
   IssueType = 2,
   IssueCategory = 3,
 }
+
+export enum IssueSeverity{
+  Error = 1,
+  Warning = 2,
+  Suggestion = 3,
+  Hint = 4
+}
+
+
 export interface IInspectResultsSummary
 {
   revisionInfos:IRevisionInfo[]

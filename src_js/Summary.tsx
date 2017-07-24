@@ -11,8 +11,9 @@ import {
   TableRow,
   TableRowColumn,
 } from 'material-ui/Table';
-import {AreaChart, XAxis, YAxis, CartesianGrid, Tooltip, Area} from 'recharts';
+import {AreaChart, XAxis, YAxis, CartesianGrid, Tooltip, Area,ComposedChart,Bar} from 'recharts';
 import {blue500, red500, green500, lime500} from 'material-ui/styles/colors';
+import {Link} from 'react-router-dom';
 
 export interface ISummaryProps extends ISummaryState,RouteComponentProps<any>
 {
@@ -30,42 +31,70 @@ class Summary extends Component<ISummaryProps> {
   render() {
     return (
       <div>
-        <AreaChart 
+        <ComposedChart 
           width={this.props.hostWidth/2}
           height={(this.props.hostHeight-64)/2-32}
           data={this.props.originalData.revisionInfos}
         >
           <XAxis dataKey="id"/>
           <YAxis/>
+          <Tooltip/>
           <CartesianGrid strokeDasharray="3 3"/>
-          <Area type='monotone' dataKey='current.errorIssuesCount' stackId="1" stroke='#8884d8' fill={red500} />
-          <Area type='monotone' dataKey='current.warningIssuesCount' stackId="1" stroke='#82ca9d' fill={lime500} />
-          <Area type='monotone' dataKey='current.suggestionIssuesCount' stackId="1" stroke='#ffc658' fill={green500} />
-          <Area type='monotone' dataKey='current.hintIssuesCount' stackId="1" stroke='#ffc658' fill={blue500} />
-        </AreaChart>
+          {/*<Bar dataKey="current.warningIssuesCount" barSize={10} fill="#413e00" />*/}
+          <Area type='monotone' name="error"      dataKey='current.errorIssuesCount' stackId="1" stroke='#8884d8' fill={red500} />
+          <Area type='monotone' name="warning"    dataKey='current.warningIssuesCount' stackId="1" stroke='#82ca9d' fill={lime500} />
+          <Area type='monotone' name="suggestion" dataKey='current.suggestionIssuesCount' stackId="1" stroke='#ffc658' fill={green500} />
+          <Area type='monotone' name="hint"       dataKey='current.hintIssuesCount' stackId="1" stroke='#ffc658' fill={blue500} />
+        </ComposedChart>
         <Table height={((this.props.hostHeight-64)/2-32) + "px"}>
           <TableHeader>
             <TableRow>
               <TableHeaderColumn>ID</TableHeaderColumn>
               <TableHeaderColumn>Caption</TableHeaderColumn>
+              <TableHeaderColumn>Total</TableHeaderColumn>
               <TableHeaderColumn>Error</TableHeaderColumn>
               <TableHeaderColumn>Warning</TableHeaderColumn>
               <TableHeaderColumn>Suggestion</TableHeaderColumn>
               <TableHeaderColumn>Hint</TableHeaderColumn>
-              <TableHeaderColumn>Total</TableHeaderColumn>
             </TableRow>
           </TableHeader>
           <TableBody>
             {this.props.originalData.revisionInfos.map(revisionInfo=>{
               return (
                 <TableRow>
-                  <TableRowColumn>{revisionInfo.id}</TableRowColumn>
+                  <TableRowColumn><Link to={`/issues/${revisionInfo.id}`}>{revisionInfo.id}</Link></TableRowColumn>
                   <TableRowColumn>{revisionInfo.caption}</TableRowColumn>
-                  <TableRowColumn>{revisionInfo.current.errorIssuesCount} ( +{revisionInfo.incresedFromPrevious.errorIssuesCount} -{revisionInfo.fixedFromPrevious.errorIssuesCount} )</TableRowColumn>
-                  <TableRowColumn>{revisionInfo.current.warningIssuesCount} ( +{revisionInfo.incresedFromPrevious.warningIssuesCount}  -{revisionInfo.fixedFromPrevious.warningIssuesCount} )</TableRowColumn>
-                  <TableRowColumn>{revisionInfo.current.suggestionIssuesCount} ( +{revisionInfo.incresedFromPrevious.suggestionIssuesCount}  -{revisionInfo.fixedFromPrevious.suggestionIssuesCount} )</TableRowColumn>
-                  <TableRowColumn>{revisionInfo.current.hintIssuesCount} ( +{revisionInfo.incresedFromPrevious.hintIssuesCount}  -{revisionInfo.fixedFromPrevious.hintIssuesCount} )</TableRowColumn>
-                  <TableRowColumn>{revisionInfo.current.errorIssuesCount + revisionInfo.current.warningIssuesCount+ revisionInfo.current.suggestionIssuesCount + revisionInfo.current.hintIssuesCount}</TableRowColumn>
+                  <TableRowColumn>
+                    <Link to={`/issues/${revisionInfo.id}/`}>{revisionInfo.current.errorIssuesCount + revisionInfo.current.warningIssuesCount+ revisionInfo.current.suggestionIssuesCount + revisionInfo.current.hintIssuesCount}</Link>
+                  </TableRowColumn>
+                  <TableRowColumn>
+                    <Link to={`/issues/${revisionInfo.id}?hidefilter=warning,suggestion,hint`}>{revisionInfo.current.errorIssuesCount}</Link>
+                    <span style={{marginLeft:"1em"}}/>
+                    ( <Link to={`/issues/${revisionInfo.id}?filter=warning,suggestion,hint&diff=incresedFromPrevious`}>+{revisionInfo.incresedFromPrevious.errorIssuesCount}</Link>
+                    <span style={{marginLeft:"1em"}}/>
+                    <Link to={`/issues/${revisionInfo.id}?filter=warning,suggestion,hint&diff=fixedFromPrevious`}>-{revisionInfo.fixedFromPrevious.errorIssuesCount}</Link> )
+                  </TableRowColumn>
+                  <TableRowColumn>
+                    <Link to={`/issues/${revisionInfo.id}?hidefilter=error,suggestion,hint`}>{revisionInfo.current.warningIssuesCount}</Link>
+                    <span style={{marginLeft:"1em"}}/>
+                    ( <Link to={`/issues/${revisionInfo.id}?filter=error,suggestion,hint&diff=incresedFromPrevious`}>+{revisionInfo.incresedFromPrevious.warningIssuesCount}</Link>
+                    <span style={{marginLeft:"1em"}}/>
+                    <Link to={`/issues/${revisionInfo.id}?filter=error,suggestion,hint&diff=fixedFromPrevious`}>-{revisionInfo.fixedFromPrevious.warningIssuesCount}</Link> )
+                  </TableRowColumn>
+                  <TableRowColumn>
+                    <Link to={`/issues/${revisionInfo.id}?hidefilter=error,warning,hint`}>{revisionInfo.current.suggestionIssuesCount}</Link>
+                    <span style={{marginLeft:"1em"}}/>
+                    ( <Link to={`/issues/${revisionInfo.id}?filter=error,warning,hint&diff=incresedFromPrevious`}>+{revisionInfo.incresedFromPrevious.suggestionIssuesCount}</Link>
+                    <span style={{marginLeft:"1em"}}/>
+                    <Link to={`/issues/${revisionInfo.id}?filter=error,warning,hint`}>-{revisionInfo.fixedFromPrevious.suggestionIssuesCount}</Link> )
+                  </TableRowColumn>
+                  <TableRowColumn>
+                    <Link to={`/issues/${revisionInfo.id}?hidefilter=error,warning,suggestion`}>{revisionInfo.current.hintIssuesCount}</Link>
+                    <span style={{marginLeft:"1em"}}/>
+                    ( <Link to={`/issues/${revisionInfo.id}?filter=error,warning,suggestion&diff=incresedFromPrevious`}>+{revisionInfo.incresedFromPrevious.hintIssuesCount}</Link>
+                    <span style={{marginLeft:"1em"}}/>
+                    <Link to={`/issues/${revisionInfo.id}?filter=error,warning,suggestion&diff=fixedFromPrevious`}>-{revisionInfo.fixedFromPrevious.hintIssuesCount}</Link> )
+                  </TableRowColumn>
                 </TableRow>
               );
             })}

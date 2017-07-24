@@ -280,23 +280,23 @@ export interface BarProps extends Props<Bar>
    * The key of a group of data which should be unique in an area chart.
 
   */
-  dataKey: String | Number;
-  xAxisId: String | Number;
-  yAxisId: String | Number;
+  dataKey?: String | Number;
+  xAxisId?: String | Number;
+  yAxisId?: String | Number;
   legendType?: 'line' | 'square' | 'rect'| 'circle' | 'cross' | 'diamond' | 'square' | 'star' | 'triangle' | 'wye' | 'none';
-  label: Boolean | any | ReactElement<any> | (()=>any);
-  data: any[];
+  label?: Boolean | any | ReactElement<any> | (()=>any);
+  data?: any[];
   barSize?: Number;
-  maxBarSize: Number;
-  minPointSize: Number;
+  maxBarSize?: Number;
+  minPointSize?: Number;
   shape?: ReactElement<any> | (()=>any);
   stackId?: String | Number;
   unit?: String | Number;
   name?: String | Number;
-  isAnimationActive: Boolean;
-  animationBegin: Number;
-  animationDuration: Number;
-  animationEasing: 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'linear';
+  isAnimationActive?: Boolean;
+  animationBegin?: Number;
+  animationDuration?: Number;
+  animationEasing?: 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'linear';
   onClick?: ()=>void;
   onMouseDown?: ()=>void;
   onMouseUp?: ()=>void;
@@ -305,6 +305,7 @@ export interface BarProps extends Props<Bar>
   onMouseOut?: ()=>void;
   onMouseEnter?: ()=>void;
   onMouseLeave?: ()=>void;
+  fill?:string;
 }
 
 export interface Bar extends ComponentClass<BarProps> {
@@ -493,3 +494,74 @@ export interface Tooltip extends ComponentClass<TooltipProps> {
 }
 interface Tooltip extends ComponentClass<TooltipProps> { }
 declare const Tooltip: Tooltip;
+
+
+
+
+
+export interface ComposedChartProps extends Props<ComposedChartProps> {
+  /**
+   * The layout of bars in the chart.
+   * DEFAULT: 'horizontal'
+  */
+  layout?: 'horizontal' | 'vertical';
+  /**
+   * If any two categorical charts(LineChart, AreaChart, BarChart, ComposedChart) have the same syncId, these two charts can sync the position tooltip, and the startIndex, endIndex of Brush.
+  */
+  syncId?: string;
+  /**
+   * The width of chart container.
+  */
+  width?:Number;
+  /**
+   * The height of chart container.
+  */
+  height?:Number;
+  /**
+   * The source data, in which each element is an object.
+  */
+  data:any[];
+  /**
+   * The sizes of whitespace around the container.
+   * DEFAULT: { top: 5, right: 5, bottom: 5, left: 5 }
+  */
+  margin?:any;
+
+  /**
+   * The gap between two bar categories, which can be a percent value or a fixed value.
+   * DEFAULT: '10%'
+  */
+  barCategoryGap?: string | Number;
+  /**
+   * The gap between two bars in the same category.
+   * DEFAULT: 4
+  */
+  barGap?: string | Number;
+  /**
+   * The width or height of each bar. If the barSize is not specified, the size of the bar will be calculated by the barCategoryGap, barGap and the quantity of bar groups.
+  */
+  barSize?: Number;
+
+  /**
+   * The customized event handler of click in this chart.
+  */
+  onClick?: ()=>void;
+  /**
+   * The customized event handler of mouseenter in this chart.
+  */
+  onMouseEnter?: ()=>void;
+  /**
+   * The customized event handler of mousemove in this chart.
+  */
+  onMouseMove?: ()=>void;
+  /**
+   * The customized event handler of mouseleave in this chart.
+  */
+  onMouseLeave?: ()=>void;
+}
+
+
+export interface ComposedChart extends ComponentClass<ComposedChartProps> {
+}
+interface ComposedChart extends ComponentClass<ComposedChartProps> { }
+declare const ComposedChart: ComposedChart;

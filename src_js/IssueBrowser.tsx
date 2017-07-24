@@ -36,9 +36,11 @@ import Menu from 'material-ui/Menu';
 import DropDownMenu from 'material-ui/DropDownMenu';
 
 import {blue500, red500, green500, lime500} from 'material-ui/styles/colors';
-import {IssueGroupByTypes, IInspectResultsSummary,IIssue,IIssueType,IOriginalData} from './CommonData';
-import { IIssueBrowserState,IssueIconType,IGroup,IItem,IssueBrowserActionDispatcher} from './IssueBrowserReducer';
+import {IssueGroupByTypes, IInspectResultsSummary,IIssue,IIssueType,IOriginalData,IssueSeverity} from './CommonData';
+import { IIssueBrowserState,IssueIconType,IGroup,IItem,IssueBrowserActionDispatcher,DiffMode} from './IssueBrowserReducer';
 import {RouteComponentProps} from 'react-router-dom';
+import * as querystring from 'query-string';
+import {LocationDescriptorObject} from 'history';
 
 var thema = lightBaseTheme;
 
@@ -61,7 +63,56 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
     this.createIssueElement = this.createIssueElement.bind(this);
     this.createExpandComponent = this.createExpandComponent.bind(this);
 
-    this.props.actions.getInitialData();
+    var queyparameters = this.props.location.search
+    var revisionId = this.props.match.params.revid;
+    var parsed  = querystring.parse(queyparameters)
+    if(parsed.hidefilter !== undefined)
+    {
+      var hideStr:string = parsed.hidefilter;
+      var hideList = hideStr.split(",");
+      this.props.actions.setIssuesFilter(
+        hideStr.indexOf("error") < 0,
+        hideStr.indexOf("warning") < 0,
+        hideStr.indexOf("suggestion") < 0,
+        hideStr.indexOf("hint") < 0
+      );
+    }
+    if(parsed.diff !== undefined)
+    {
+      var diffStr:string = parsed.diff;
+      if(diffStr === "incresedFromPrevious")
+      {
+        this.props.actions.onChangeDiffMode(DiffMode.IncresedFromPrevious);
+      }
+      else if(diffStr === 'fixedFromPrevious')
+      {
+        this.props.actions.onChangeDiffMode(DiffMode.FixedFromPrevious);
+      }
+      else if(diffStr === 'incresedFromFirst')
+      {
+        this.props.actions.onChangeDiffMode(DiffMode.IncresedFromFirst);
+      }
+      else if(diffStr === 'fixedFromFirst')
+      {
+        this.props.actions.onChangeDiffMode(DiffMode.FixedFromFirst);
+      }
+      else
+      {
+        this.props.actions.onChangeDiffMode(DiffMode.Normal);
+      }
+    }
+    else
+    {
+        this.props.actions.onChangeDiffMode(DiffMode.Normal);
+    }
+    if(this.props.revisions.revisionInfos.length === 0)
+    {
+      this.props.actions.getInitialData();
+    }
+    if(revisionId)
+    {
+      this.props.actions.onChangedRevisionId(revisionId);
+    }
   }
 
 
@@ -310,6 +361,23 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
   inactiveToggleButtonStyle:any = {width:"36px", minWidth:"36px", margin:"4px"};
   navigationButtonStyle:any = {width:"36px", minWidth:"36px", margin:"4px"};
 
+  createUri(selectedRevisionId:string, issueId:string, diffMode:number, showError:boolean,showWarning:boolean,showSuggestion:boolean,showHint:boolean):LocationDescriptorObject{
+    var search="";
+    if(!showError){ search += 'error,'; }
+    if(!showWarning){ search += 'warning,'; }
+    if(!showSuggestion){ search += 'suggestion,'; }
+    if(!showHint){ search += 'hint,'; }
+
+    if(search !== "")
+    {
+      search = "?hidefilter="+search;
+    }
+    return {
+      pathname:`/issues/${selectedRevisionId}`,
+      search:search
+    };
+  }
+
   render() {
     return (
       <div>
@@ -325,7 +393,7 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
                 return (<MenuItem 
                   key={"Revision_" + revision.id}
                   value={revision.id} 
-                  primaryText={revision.caption} 
+                  primaryText={revision.id} 
                   rightAvatar={<Badge badgeContent={revision.issueCount} primary={true}/>} />)
               })}
               </SelectField>
@@ -361,19 +429,63 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
               <FlatButton 
                 style={this.props.showErrorIssues?this.activeToggleButtonStyle:this.inactiveToggleButtonStyle} 
                 icon={<ErrorIcon color={red500}/>}
-                onTouchTap={()=>this.props.actions.onToggleShowErrorIssues()}/>
+                onTouchTap={()=>{
+                  this.props.history.push(
+                    this.createUri(this.props.selectedRevision.id, 
+                    this.props.selectedIssueId,
+                    this.props.diffMode,
+                    !this.props.showErrorIssues,
+                    this.props.showWarningIssues,
+                    this.props.showSuggestionIssues,
+                    this.props.showHintIssues));
+
+                    this.props.actions.onToggleShowErrorIssues();
+                  }}/>
               <FlatButton 
                 style={this.props.showWarningIssues?this.activeToggleButtonStyle:this.inactiveToggleButtonStyle} 
                 icon={<WarningIcon color={lime500}/>}
-                onTouchTap={()=>this.props.actions.onToggleShowWarningIssues()}/>
+                onTouchTap={()=>{
+                  this.props.history.push(
+                    this.createUri(this.props.selectedRevision.id, 
+                    this.props.selectedIssueId,
+                    this.props.diffMode,
+                    this.props.showErrorIssues,
+                    !this.props.showWarningIssues,
+                    this.props.showSuggestionIssues,
+                    this.props.showHintIssues));
+                    
+                    this.props.actions.onToggleShowWarningIssues();
+                  }}/>
               <FlatButton 
                 style={this.props.showSuggestionIssues?this.activeToggleButtonStyle:this.inactiveToggleButtonStyle} 
                 icon={<InfoIcon color={green500}/>}
-                onTouchTap={()=>this.props.actions.onToggleShowSuggestionIssues()}/>
+                onTouchTap={()=>{
+                  this.props.history.push(
+                    this.createUri(this.props.selectedRevision.id, 
+                    this.props.selectedIssueId,
+                    this.props.diffMode,
+                    this.props.showErrorIssues,
+                    this.props.showWarningIssues,
+                    !this.props.showSuggestionIssues,
+                    this.props.showHintIssues));
+                    
+                    this.props.actions.onToggleShowSuggestionIssues();
+                  }}/>
               <FlatButton 
                 style={this.props.showHintIssues?this.activeToggleButtonStyle:this.inactiveToggleButtonStyle} 
                 icon={<InfoIcon color={blue500}/>}
-                onTouchTap={()=>this.props.actions.onToggleShowHintIssues()}/>
+                onTouchTap={()=>{
+                  this.props.history.push(
+                    this.createUri(this.props.selectedRevision.id, 
+                    this.props.selectedIssueId,
+                    this.props.diffMode,
+                    this.props.showErrorIssues,
+                    this.props.showWarningIssues,
+                    this.props.showSuggestionIssues,
+                    !this.props.showHintIssues));
+                    
+                    this.props.actions.onToggleShowHintIssues();
+                  }}/>
             </ToolbarGroup>
             <ToolbarGroup>
               <IconButton>
