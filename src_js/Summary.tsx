@@ -70,30 +70,30 @@ class Summary extends Component<ISummaryProps> {
                   <TableRowColumn>
                     <Link to={`/issues/${revisionInfo.id}?hidefilter=warning,suggestion,hint`}>{revisionInfo.current.errorIssuesCount}</Link>
                     <span style={{marginLeft:"1em"}}/>
-                    ( <Link to={`/issues/${revisionInfo.id}?filter=warning,suggestion,hint&diff=incresedFromPrevious`}>+{revisionInfo.incresedFromPrevious.errorIssuesCount}</Link>
+                    ( <Link to={`/issues/${revisionInfo.id}?hidefilter=warning,suggestion,hint&diff=incresedFromPrevious`}>+{revisionInfo.incresedFromPrevious.errorIssuesCount}</Link>
                     <span style={{marginLeft:"1em"}}/>
-                    <Link to={`/issues/${revisionInfo.id}?filter=warning,suggestion,hint&diff=fixedFromPrevious`}>-{revisionInfo.fixedFromPrevious.errorIssuesCount}</Link> )
+                    <Link to={`/issues/${revisionInfo.id}?hidefilter=warning,suggestion,hint&diff=fixedFromPrevious`}>-{revisionInfo.fixedFromPrevious.errorIssuesCount}</Link> )
                   </TableRowColumn>
                   <TableRowColumn>
                     <Link to={`/issues/${revisionInfo.id}?hidefilter=error,suggestion,hint`}>{revisionInfo.current.warningIssuesCount}</Link>
                     <span style={{marginLeft:"1em"}}/>
-                    ( <Link to={`/issues/${revisionInfo.id}?filter=error,suggestion,hint&diff=incresedFromPrevious`}>+{revisionInfo.incresedFromPrevious.warningIssuesCount}</Link>
+                    ( <Link to={`/issues/${revisionInfo.id}?hidefilter=error,suggestion,hint&diff=incresedFromPrevious`}>+{revisionInfo.incresedFromPrevious.warningIssuesCount}</Link>
                     <span style={{marginLeft:"1em"}}/>
-                    <Link to={`/issues/${revisionInfo.id}?filter=error,suggestion,hint&diff=fixedFromPrevious`}>-{revisionInfo.fixedFromPrevious.warningIssuesCount}</Link> )
+                    <Link to={`/issues/${revisionInfo.id}?hidefilter=error,suggestion,hint&diff=fixedFromPrevious`}>-{revisionInfo.fixedFromPrevious.warningIssuesCount}</Link> )
                   </TableRowColumn>
                   <TableRowColumn>
                     <Link to={`/issues/${revisionInfo.id}?hidefilter=error,warning,hint`}>{revisionInfo.current.suggestionIssuesCount}</Link>
                     <span style={{marginLeft:"1em"}}/>
-                    ( <Link to={`/issues/${revisionInfo.id}?filter=error,warning,hint&diff=incresedFromPrevious`}>+{revisionInfo.incresedFromPrevious.suggestionIssuesCount}</Link>
+                    ( <Link to={`/issues/${revisionInfo.id}?hidefilter=error,warning,hint&diff=incresedFromPrevious`}>+{revisionInfo.incresedFromPrevious.suggestionIssuesCount}</Link>
                     <span style={{marginLeft:"1em"}}/>
-                    <Link to={`/issues/${revisionInfo.id}?filter=error,warning,hint`}>-{revisionInfo.fixedFromPrevious.suggestionIssuesCount}</Link> )
+                    <Link to={`/issues/${revisionInfo.id}?hidefilter=error,warning,hint`}>-{revisionInfo.fixedFromPrevious.suggestionIssuesCount}</Link> )
                   </TableRowColumn>
                   <TableRowColumn>
                     <Link to={`/issues/${revisionInfo.id}?hidefilter=error,warning,suggestion`}>{revisionInfo.current.hintIssuesCount}</Link>
                     <span style={{marginLeft:"1em"}}/>
-                    ( <Link to={`/issues/${revisionInfo.id}?filter=error,warning,suggestion&diff=incresedFromPrevious`}>+{revisionInfo.incresedFromPrevious.hintIssuesCount}</Link>
+                    ( <Link to={`/issues/${revisionInfo.id}?hidefilter=error,warning,suggestion&diff=incresedFromPrevious`}>+{revisionInfo.incresedFromPrevious.hintIssuesCount}</Link>
                     <span style={{marginLeft:"1em"}}/>
-                    <Link to={`/issues/${revisionInfo.id}?filter=error,warning,suggestion&diff=fixedFromPrevious`}>-{revisionInfo.fixedFromPrevious.hintIssuesCount}</Link> )
+                    <Link to={`/issues/${revisionInfo.id}?hidefilter=error,warning,suggestion&diff=fixedFromPrevious`}>-{revisionInfo.fixedFromPrevious.hintIssuesCount}</Link> )
                   </TableRowColumn>
                 </TableRow>
               );
