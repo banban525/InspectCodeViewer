@@ -61,7 +61,7 @@ class Summary extends Component<ISummaryProps> {
           <TableBody>
             {this.props.originalData.revisionInfos.map(revisionInfo=>{
               return (
-                <TableRow>
+                <TableRow key={`rev_${revisionInfo.id}`}>
                   <TableRowColumn><Link to={`/issues/${revisionInfo.id}`}>{revisionInfo.id}</Link></TableRowColumn>
                   <TableRowColumn>{revisionInfo.caption}</TableRowColumn>
                   <TableRowColumn>

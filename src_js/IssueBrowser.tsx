@@ -65,54 +65,34 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
 
     var queyparameters = this.props.location.search
     var revisionId = this.props.match.params.revid;
-    var parsed  = querystring.parse(queyparameters)
+    var parsed  = querystring.parse(queyparameters);
+    var hideStr:string = "";
     if(parsed.hidefilter !== undefined)
     {
-      var hideStr:string = parsed.hidefilter;
-      var hideList = hideStr.split(",");
-      this.props.actions.setIssuesFilter(
-        hideStr.indexOf("error") < 0,
-        hideStr.indexOf("warning") < 0,
-        hideStr.indexOf("suggestion") < 0,
-        hideStr.indexOf("hint") < 0
-      );
+      hideStr = parsed.hidefilter;
     }
+    var diffMode:DiffMode = DiffMode.Normal;
     if(parsed.diff !== undefined)
     {
       var diffStr:string = parsed.diff;
       if(diffStr === "incresedFromPrevious")
       {
-        this.props.actions.onChangeDiffMode(DiffMode.IncresedFromPrevious);
+        diffMode = DiffMode.IncresedFromPrevious;
       }
       else if(diffStr === 'fixedFromPrevious')
       {
-        this.props.actions.onChangeDiffMode(DiffMode.FixedFromPrevious);
+        diffMode = DiffMode.FixedFromPrevious;
       }
       else if(diffStr === 'incresedFromFirst')
       {
-        this.props.actions.onChangeDiffMode(DiffMode.IncresedFromFirst);
+        diffMode = DiffMode.IncresedFromFirst;
       }
       else if(diffStr === 'fixedFromFirst')
       {
-        this.props.actions.onChangeDiffMode(DiffMode.FixedFromFirst);
-      }
-      else
-      {
-        this.props.actions.onChangeDiffMode(DiffMode.Normal);
+        diffMode = DiffMode.FixedFromFirst;
       }
     }
-    else
-    {
-        this.props.actions.onChangeDiffMode(DiffMode.Normal);
-    }
-    if(this.props.revisions.revisionInfos.length === 0)
-    {
-      this.props.actions.getInitialData();
-    }
-    if(revisionId)
-    {
-      this.props.actions.onChangedRevisionId(revisionId);
-    }
+    this.props.actions.getInitialData2(revisionId, diffMode, "", hideStr);
   }
 
 
@@ -140,21 +120,25 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
 
   getCodePageUri():string
   {
-    if(this.props.selectedRevision.id !== "" && this.props.selectedIssue.file !== "")
-    {
-       var result = `./revisions/${this.props.selectedRevision.id}/codes/`;
-       result += `${this.props.selectedIssue.file.replace(/\\/g, "_")}.html`;
-       result += `?line=${this.props.selectedIssue.line}`;
-       if(this.props.selectedThermaId === 1)
-       {
-         result += "&therma=dark";
-       }
-       return result;
-    }
-    else
+    if(this.props.selectedRevision.id === "" || this.props.selectedIssue.file === "")
     {
       return "./empty.html"
     }
+
+    var revisionDataToShow = this.props.selectedRevision;
+    if(this.props.diffMode === DiffMode.FixedFromFirst || this.props.diffMode === DiffMode.FixedFromPrevious)
+    {
+      revisionDataToShow = this.props.selectedDiffBaseRevision;
+    }
+
+    var result = `./revisions/${revisionDataToShow.id}/codes/`;
+    result += `${this.props.selectedIssue.file.replace(/\\/g, "_")}.html`;
+    result += `?line=${this.props.selectedIssue.line}`;
+    if(this.props.selectedThermaId === 1)
+    {
+      result += "&therma=dark";
+    }
+    return result;
   }
 
   toIconElement(icon: IssueIconType):any{
@@ -214,7 +198,7 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
           paginationPosition: 'top',
           hideSizePerPage: true,
           withFirstAndLast: false,
-          paginationPanel: this.createNavigationFactory(row.items.length)
+          paginationPanel: this.createNavigationFactory(row.id, row.items.length)
         } as Options}
        >
         <TableHeaderColumn isKey dataField='id' hidden>ID</TableHeaderColumn>
@@ -246,7 +230,7 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
           paginationPosition: 'top',
           hideSizePerPage: true,
           withFirstAndLast: false,
-          paginationPanel: this.createNavigationFactory(root.items.length)
+          paginationPanel: this.createNavigationFactory(root.id, root.items.length)
         } as Options}
        >
         <TableHeaderColumn isKey dataField='id' hidden>ID</TableHeaderColumn>
@@ -265,7 +249,7 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
         pagination={isLargeData}
         options={{
           paginationPosition: 'top',
-          paginationPanel: this.createNavigationFactory(root.subGroups.length),
+          paginationPanel: this.createNavigationFactory(root.id, root.subGroups.length),
           expanding: root.expandedChildren
           } as Options}
         selectRow={{
@@ -296,7 +280,7 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
       return this.createIssueElement(target);
     }
   }
-  createNavigationFactory(totalCount:number) : (props:any)=>any
+  createNavigationFactory(parentId:any, totalCount:number) : (props:any)=>any
   {
     let renderPaginationPanel = (props:any) => {
       let curPageNo = props.currPage;
@@ -306,13 +290,14 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
       return (
         <div>
           <div>
-            <FlatButton style={this.navigationButtonStyle} onTouchTap={ () => props.changePage(1) }>|&lt;</FlatButton>
+            <FlatButton key={`${parentId}_page_0`} style={this.navigationButtonStyle} onTouchTap={ () => props.changePage(1) }>|&lt;</FlatButton>
             {
               Array.apply(null, {length: 5}).map((val:any,index:number)=>{
                 let pageNo = curPageNo + index-2;
                 let disabled = pageNo <= 0 || totalPageCount < pageNo;
                 return (
                   <FlatButton 
+                    key={`${parentId}_page_${pageNo}`}
                     disabled={disabled }
                     style={this.navigationButtonStyle} 
                     onTouchTap={ () => props.changePage(pageNo) }>{disabled?"-":pageNo}</FlatButton>);
@@ -339,7 +324,7 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
           paginationPosition: 'top',
           sizePerPage:10,
           expanding: root.expandedChildren,
-          paginationPanel: this.createNavigationFactory(root.subGroups.length)
+          paginationPanel: this.createNavigationFactory(root.id, root.subGroups.length)
           } as Options}
         selectRow={{
           mode:'radio',
@@ -430,7 +415,7 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
                 style={this.props.showErrorIssues?this.activeToggleButtonStyle:this.inactiveToggleButtonStyle} 
                 icon={<ErrorIcon color={red500}/>}
                 onTouchTap={()=>{
-                  this.props.history.push(
+                  this.props.history.replace(
                     this.createUri(this.props.selectedRevision.id, 
                     this.props.selectedIssueId,
                     this.props.diffMode,
@@ -445,7 +430,7 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
                 style={this.props.showWarningIssues?this.activeToggleButtonStyle:this.inactiveToggleButtonStyle} 
                 icon={<WarningIcon color={lime500}/>}
                 onTouchTap={()=>{
-                  this.props.history.push(
+                  this.props.history.replace(
                     this.createUri(this.props.selectedRevision.id, 
                     this.props.selectedIssueId,
                     this.props.diffMode,
@@ -460,7 +445,7 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
                 style={this.props.showSuggestionIssues?this.activeToggleButtonStyle:this.inactiveToggleButtonStyle} 
                 icon={<InfoIcon color={green500}/>}
                 onTouchTap={()=>{
-                  this.props.history.push(
+                  this.props.history.replace(
                     this.createUri(this.props.selectedRevision.id, 
                     this.props.selectedIssueId,
                     this.props.diffMode,
@@ -475,7 +460,7 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
                 style={this.props.showHintIssues?this.activeToggleButtonStyle:this.inactiveToggleButtonStyle} 
                 icon={<InfoIcon color={blue500}/>}
                 onTouchTap={()=>{
-                  this.props.history.push(
+                  this.props.history.replace(
                     this.createUri(this.props.selectedRevision.id, 
                     this.props.selectedIssueId,
                     this.props.diffMode,
@@ -510,43 +495,6 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
               rightAvatar={<Badge badgeContent={revision.issueCount} primary={true}/>} />)
           })}
           </SelectField>*/}
-        <Dialog
-          title="Issue Browser Settings"
-          
-          modal={false}
-          open={false}
-          onRequestClose={()=>{}}
-        >
-
-          <SelectField
-            floatingLabelText="Diff Type"
-            value={this.props.selectedDiffBaseRevision.id}
-            onChange={(event:any, index:number, value:string)=>this.props.actions.onChangedDiffBaseRevision(index)}
-            fullWidth
-            style={{height:"72px"}}>
-            <MenuItem 
-              primaryText="none" />
-            <MenuItem 
-              primaryText="diff from specified revision" />
-            <MenuItem 
-              primaryText="diff from prev revision" />
-          </SelectField>
-          <SelectField
-            floatingLabelText="Diff Base Revision"
-            value={this.props.selectedDiffBaseRevision.id}
-            onChange={(event:any, index:number, value:string)=>this.props.actions.onChangedDiffBaseRevision(index)}
-            fullWidth
-            style={{height:"72px"}}>
-          {this.props.revisions.revisionInfos.map(revision=>{
-            return (<MenuItem 
-              key={"Revision_" + revision.id}
-              value={revision.id} 
-              primaryText={revision.caption} 
-              rightAvatar={<Badge badgeContent={revision.issueCount} primary={true}/>} />)
-// ReSharper disable TsResolvedFromInaccessibleModule
-          })}
-          </SelectField>
-        </Dialog>
 
           <div style={{height:(this.props.hostHeight - 24-64-72-72) + "px"}}>
             {this.createIssueTreeElement(this.props.tree)}

@@ -34,15 +34,31 @@ store.subscribe(() => console.log(store.getState()));
 
 
 declare var __data: any;
+var isScriptBlockWorking = false;
+var ajaxQueue:any[] = [];
 function myAjax(url:string, onRecieved:(data:any)=>void):void {
-    var s:any = document.createElement("script");
-    s.src = url;
-    s.onload = () => {
-      onRecieved(__data);
+  if(isScriptBlockWorking)
+  {
+    ajaxQueue.push({
+      url:url,
+      onRecieved:onRecieved
+    });
+    return;
+  }
+  isScriptBlockWorking = true;
+  var s:any = document.createElement("script");
+  s.src = url;
+  s.onload = () => {
+    onRecieved(__data);
+    isScriptBlockWorking = false;
+    if(ajaxQueue.length !== 0){
+      var command = ajaxQueue.pop();
+      myAjax(command.url, command.onRecieved);
     }
+  }
 
-    var ele = document.getElementById("script");
-    ele.appendChild(s);
+  var ele = document.getElementById("script");
+  ele.appendChild(s);
 }
 
 function mapAppStateToProps(state : any, ownProps:RouteComponentProps<any>):IAppProps {

@@ -58,4 +58,5 @@ export interface IIssue{
 export interface IOriginalData{
   issueTypes:IIssueType[];
   issues:IIssue[];
+  metaInfo:IRevisionInfo
 }

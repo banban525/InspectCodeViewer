@@ -7,7 +7,6 @@ export interface IIssueBrowserState{
   selectedIssue? : IIssue;
   selectedIssueType?: IIssueType;
   tree?: IGroup;
-  originalData?: IOriginalData,
   currentData?: IOriginalData,
   diffBaseData?: IOriginalData,
   selectedRevision?: IRevisionInfo;
@@ -71,6 +70,71 @@ export class IssueBrowserActionDispatcher
     this.myAjax("./revisions/summary.js", (revisions:IInspectResultsSummary)=>{
       this.dispatch( {type:"receivedInitialData", revisions: revisions});
     });
+  }
+  getInitialData2(currentRevisionId:string, diffMode:DiffMode, currentIssueId:string, hideFilter:string): void{
+    if(this.getState().revisions.revisionInfos.length === 0)
+    {
+      this.myAjax("./revisions/summary.js", (revisions:IInspectResultsSummary)=>{
+        this.dispatch( {type:"receivedInitialData", revisions: revisions});
+
+        if(diffMode === DiffMode.FixedFromFirst || diffMode === DiffMode.IncresedFromFirst)
+        {
+          var getRevisionId = revisions.revisionInfos[0].id;
+          this.myAjax(`./revisions/${getRevisionId}/data.js`, (data:IOriginalData)=>{
+            this.dispatch( {type:"revievedDiffBaseRevisionData", data:data});
+          });
+        }
+        else if(diffMode === DiffMode.FixedFromPrevious || diffMode === DiffMode.IncresedFromPrevious)
+        {
+          var index = revisions.revisionInfos.indexOf(
+            revisions.revisionInfos.filter(_=>_.id === currentRevisionId)[0]);
+          if(index > 0)
+          {
+            var getRevisionId = revisions.revisionInfos[index-1].id;
+
+            this.myAjax(`./revisions/${getRevisionId}/data.js`, (data:IOriginalData)=>{
+              this.dispatch( {type:"revievedDiffBaseRevisionData", data:data});
+            });
+          }
+        }
+
+        this.myAjax(`./revisions/${currentRevisionId}/data.js`, (data:IOriginalData)=>{
+          this.dispatch( {type:"revievedRevisionData", data:data});
+        });
+      });
+    }
+    else
+    {
+      if(diffMode === DiffMode.FixedFromFirst || diffMode === DiffMode.IncresedFromFirst)
+      {
+        var getRevisionId = this.getState().revisions.revisionInfos[0].id;
+        this.myAjax(`./revisions/${getRevisionId}/data.js`, (data:IOriginalData)=>{
+          this.dispatch( {type:"revievedDiffBaseRevisionData", data:data});
+        });
+      }
+      else if(diffMode === DiffMode.FixedFromPrevious || diffMode === DiffMode.IncresedFromPrevious)
+      {
+        var index = this.getState().revisions.revisionInfos.indexOf(
+          this.getState().revisions.revisionInfos.filter(_=>_.id === currentRevisionId)[0]);
+        
+        if(index > 0){
+          var getRevisionId = this.getState().revisions.revisionInfos[index-1].id;
+
+          this.myAjax(`./revisions/${getRevisionId}/data.js`, (data:IOriginalData)=>{
+            this.dispatch( {type:"revievedDiffBaseRevisionData", data:data});
+          });
+          
+        }
+      }
+      this.myAjax(`./revisions/${currentRevisionId}/data.js`, (data:IOriginalData)=>{
+        this.dispatch( {type:"revievedRevisionData", data:data});
+      });
+    }
+    this.dispatch({type:"getInitialData2", 
+      currentRevisionId:currentRevisionId, 
+      diffMode:diffMode, 
+      currentIssueId:currentIssueId, 
+      hideFilter:hideFilter});
   }
   onChangeIssuesGroupBy(value:number):void {
     this.dispatch( {type:"onChangeIssuesGroupBy", value:value});
@@ -157,19 +221,25 @@ const initialIssueBrowserState: IIssueBrowserState = {
     severity:"",
     wikiUrl:""
   },
-  originalData:{
-    issues:[],
-    issueTypes:[]
-  },
   currentData:{
     issues:[],
-    issueTypes:[]
+    issueTypes:[],
+    metaInfo:{
+      id:"",
+      caption:"",
+      issueCount:0
+    }
   },
   diffBaseData:{
     issues:[],
-    issueTypes:[]
+    issueTypes:[],
+    metaInfo:{
+      id:"",
+      caption:"",
+      issueCount:0
+    }
   },
-  tree: createTree([], [], [], IssueGroupByTypes.IssueType, true,true,true,true),
+  tree: createTree([], [], [], IssueGroupByTypes.IssueType, DiffMode.Normal, true,true,true,true),
   revisions:{
     revisionInfos:[]
   },
@@ -217,16 +287,30 @@ function createTree(
   diffBaseIssues:IIssue[], 
   issueTypes:IIssueType[], 
   issueGroupBy:IssueGroupByTypes,
+  diffMode:DiffMode,
   showErrorIssues:boolean,
   showWarningIssues:boolean,
   showSuggestionIssues:boolean,
   showHintIssues:boolean): IGroup
-  {
+{
 
-  let targetIssues:IIssue[] = issues.filter(issue=>{
-    return !diffBaseIssues.some((value) => value.id === issue.id);
-  })
+  let targetIssues:IIssue[] = issues;
+  if(diffMode === DiffMode.FixedFromFirst || diffMode === DiffMode.FixedFromPrevious)
+  {
+    targetIssues = diffBaseIssues.filter(issue=>{
+      return !issues.some((value) => value.id === issue.id);
+    });
+  }
+  else if(diffMode === DiffMode.IncresedFromFirst || diffMode === DiffMode.IncresedFromPrevious)
+  {
+    targetIssues = issues.filter(issue=>{
+      return !diffBaseIssues.some((value) => value.id === issue.id);
+    });
+  }
+
   let filteredIssueTypes = issueTypes;
+
+  
   if(showErrorIssues === false)
   {
     filteredIssueTypes = filteredIssueTypes.filter(issueType=>issueType.severity !== "ERROR");
@@ -418,8 +502,19 @@ function updateGroups(tree:IGroup, updateTarget:IGroup):IGroup
 }
 
 export function IssueBrowserReducer(state: IIssueBrowserState = initialIssueBrowserState, action: any) {
+
   switch (action.type) 
   {
+  case 'getInitialData2':
+
+    return objectAssign({}, state, {
+      diffMode:action.diffMode, 
+      selectedIssueId:action.currentIssueId, 
+      showErrorIssues:action.hideFilter.indexOf("error") < 0,
+      showWarningIssues:action.hideFilter.indexOf("warning") < 0,
+      showSuggestionIssues:action.hideFilter.indexOf("suggestion") < 0,
+      showHintIssues:action.hideFilter.indexOf("hint") < 0,
+    });
   case 'receivedInitialData':
     return objectAssign({}, state, {revisions:action.revisions});
   case 'onChangeIssuesGroupBy':
@@ -428,6 +523,7 @@ export function IssueBrowserReducer(state: IIssueBrowserState = initialIssueBrow
       state.diffBaseData.issues, 
       state.currentData.issueTypes, 
       action.value,
+      state.diffMode,
       state.showErrorIssues,
       state.showWarningIssues,
       state.showSuggestionIssues,
@@ -439,8 +535,17 @@ export function IssueBrowserReducer(state: IIssueBrowserState = initialIssueBrow
     {
       // クリックされたのがissueなら選択する
       var id = action.value.replace("ISSUE_", "");
-      var selectedIssue = state.currentData.issues.filter(issue=>issue.id === id)[0];
-      var selectedIssueType = state.currentData.issueTypes.filter(issueType=>issueType.id == selectedIssue.typeId)[0];
+
+      var currentIssues = state.currentData.issues;
+      var currentIssueTypes = state.currentData.issueTypes;
+      if(state.diffMode === DiffMode.FixedFromFirst || state.diffMode === DiffMode.FixedFromPrevious)
+      {
+        currentIssues = state.diffBaseData.issues;
+        currentIssueTypes = state.diffBaseData.issueTypes;
+      }
+
+      var selectedIssue = currentIssues.filter(issue=>issue.id === id)[0];
+      var selectedIssueType = currentIssueTypes.filter(issueType=>issueType.id == selectedIssue.typeId)[0];
       
       return objectAssign({}, state, {selectedIssueId:action.value, selectedIssue: selectedIssue, selectedIssueType:selectedIssueType});
     }
@@ -469,24 +574,28 @@ export function IssueBrowserReducer(state: IIssueBrowserState = initialIssueBrow
       state.diffBaseData.issues,
       data.issueTypes, 
       state.issuesGroupBy,
+      state.diffMode,
       state.showErrorIssues,
       state.showWarningIssues,
       state.showSuggestionIssues,
       state.showHintIssues);
-
-    tree.expandedChildren = [tree.subGroups[0].id]
     
+    //state.selectedRevision.id !== data.
+
     return objectAssign({}, state, {
       selectedIssue:data.issues[0], 
       selectedIssueType:data.issueTypes.filter(_=>_.id === data.issues[0].typeId)[0],
-      originalData:data,
       currentData:data,
+      selectedRevision:data.metaInfo,
       tree: tree
     });
   case 'onChangedDiffBaseRevision':
     var selectedRevision = state.revisions.revisionInfos[action.index];
 
-    return objectAssign({}, state, {selectedDiffBaseRevision:selectedRevision});
+    return objectAssign({}, state, {
+      selectedDiffBaseRevision:selectedRevision, 
+      selectedDiffBaseRevisionId:selectedRevision
+    });
 
   case 'revievedDiffBaseRevisionData':
     var diffBaseData:IOriginalData = action.data;
@@ -495,6 +604,7 @@ export function IssueBrowserReducer(state: IIssueBrowserState = initialIssueBrow
       diffBaseData.issues,
       state.currentData.issueTypes, 
       state.issuesGroupBy,
+      state.diffMode,
       state.showErrorIssues,
       state.showWarningIssues,
       state.showSuggestionIssues,
@@ -502,6 +612,7 @@ export function IssueBrowserReducer(state: IIssueBrowserState = initialIssueBrow
 
     return objectAssign({}, state, {
       diffBaseData:diffBaseData,
+      selectedDiffBaseRevision:diffBaseData.metaInfo,
       tree: tree
     });
   case 'onChangedTherma':
@@ -515,8 +626,17 @@ export function IssueBrowserReducer(state: IIssueBrowserState = initialIssueBrow
     {
       // クリックされたのがissueなら選択する
       id = id.replace("ISSUE_", "");
-      var selectedIssue = state.currentData.issues.filter(issue=>issue.id === id)[0];
-      var selectedIssueType = state.currentData.issueTypes.filter(issueType=>issueType.id == selectedIssue.typeId)[0];
+
+      var currentIssues = state.currentData.issues;
+      var currentIssueTypes = state.currentData.issueTypes;
+      if(state.diffMode === DiffMode.FixedFromFirst || state.diffMode === DiffMode.FixedFromPrevious)
+      {
+        currentIssues = state.diffBaseData.issues;
+        currentIssueTypes = state.diffBaseData.issueTypes;
+      }
+
+      var selectedIssue = currentIssues.filter(issue=>issue.id === id)[0];
+      var selectedIssueType = currentIssueTypes.filter(issueType=>issueType.id == selectedIssue.typeId)[0];
       
       return objectAssign({}, state, {selectedIssueId:action.id, selectedIssue: selectedIssue, selectedIssueType:selectedIssueType});
     }
@@ -545,6 +665,7 @@ export function IssueBrowserReducer(state: IIssueBrowserState = initialIssueBrow
       state.diffBaseData.issues,
       state.currentData.issueTypes, 
       state.issuesGroupBy,
+      state.diffMode,
       !state.showErrorIssues,
       state.showWarningIssues,
       state.showSuggestionIssues,
@@ -556,6 +677,7 @@ export function IssueBrowserReducer(state: IIssueBrowserState = initialIssueBrow
       state.diffBaseData.issues,
       state.currentData.issueTypes, 
       state.issuesGroupBy,
+      state.diffMode,
       state.showErrorIssues,
       !state.showWarningIssues,
       state.showSuggestionIssues,
@@ -567,6 +689,7 @@ export function IssueBrowserReducer(state: IIssueBrowserState = initialIssueBrow
       state.diffBaseData.issues,
       state.currentData.issueTypes, 
       state.issuesGroupBy,
+      state.diffMode,
       state.showErrorIssues,
       state.showWarningIssues,
       !state.showSuggestionIssues,
@@ -578,6 +701,7 @@ export function IssueBrowserReducer(state: IIssueBrowserState = initialIssueBrow
       state.diffBaseData.issues,
       state.currentData.issueTypes, 
       state.issuesGroupBy,
+      state.diffMode,
       state.showErrorIssues,
       state.showWarningIssues,
       state.showSuggestionIssues,
@@ -589,6 +713,7 @@ export function IssueBrowserReducer(state: IIssueBrowserState = initialIssueBrow
       state.diffBaseData.issues,
       state.currentData.issueTypes, 
       state.issuesGroupBy,
+      state.diffMode,
       action.error,
       action.warning,
       action.suggestion,
