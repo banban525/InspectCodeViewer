@@ -41,8 +41,6 @@ import {RouteComponentProps} from 'react-router-dom';
 import * as querystring from 'query-string';
 import {LocationDescriptorObject} from 'history';
 
-var thema = lightBaseTheme;
-
 export interface IIssueBrowserProps extends IIssueBrowserState,RouteComponentProps<any>
 {
   actions:IssueBrowserActionDispatcher;
@@ -53,6 +51,7 @@ export interface IIssueBrowserProps extends IIssueBrowserState,RouteComponentPro
 }
 
 class IssueBrowser extends Component<IIssueBrowserProps> {
+
   constructor(props: IIssueBrowserProps) {
     super(props);
     this.expandComponent = this.expandComponent.bind(this);
@@ -286,23 +285,25 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
       let pageStartIndex = props.pageStartIndex;
       let sizePerPage = props.sizePerPage;
       let totalPageCount = Math.floor(totalCount / sizePerPage) + 1;
+      let navigationButtonStyle:any = {width:"36px", minWidth:"36px", margin:"4px"};
       return (
         <div>
           <div>
-            <FlatButton key={`${parentId}_page_0`} style={this.navigationButtonStyle} onTouchTap={ () => props.changePage(1) }>|&lt;</FlatButton>
+            <FlatButton key={`${parentId}_page_0`} style={navigationButtonStyle} onTouchTap={ () => props.changePage(1) }>|&lt;</FlatButton>
             {
               Array.apply(null, {length: 5}).map((val:any,index:number)=>{
                 let pageNo = curPageNo + index-2;
                 let disabled = pageNo <= 0 || totalPageCount < pageNo;
                 return (
                   <FlatButton 
+                    backgroundColor={pageNo === curPageNo ? this.muiTheme.palette.primary1Color : "transparent"}
                     key={`${parentId}_page_${pageNo}`}
                     disabled={disabled }
-                    style={this.navigationButtonStyle} 
+                    style={navigationButtonStyle} 
                     onTouchTap={ () => props.changePage(pageNo) }>{disabled?"-":pageNo}</FlatButton>);
               })
             }
-            <FlatButton style={this.navigationButtonStyle} onTouchTap={ () => props.changePage(totalPageCount) }>&gt;|</FlatButton>
+            <FlatButton style={navigationButtonStyle} onTouchTap={ () => props.changePage(totalPageCount) }>&gt;|</FlatButton>
           </div>
         </div>
       );
@@ -341,9 +342,6 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
       </BootstrapTable>
     );
   }
-  activeToggleButtonStyle:any = {width:"36px", minWidth:"36px", margin:"4px", backgroundColor:thema.palette.clockCircleColor};
-  inactiveToggleButtonStyle:any = {width:"36px", minWidth:"36px", margin:"4px"};
-  navigationButtonStyle:any = {width:"36px", minWidth:"36px", margin:"4px"};
 
   createUri(selectedRevisionId:string, issueId:string, diffMode:number, showError:boolean,showWarning:boolean,showSuggestion:boolean,showHint:boolean):LocationDescriptorObject{
     var search="";
@@ -362,7 +360,16 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
     };
   }
 
+  muiTheme:MuiTheme;
   render() {
+    this.muiTheme = darkBaseTheme;
+    if(this.props.selectedThermaId === 0)
+    {
+      this.muiTheme = lightBaseTheme;
+    }
+    let activeToggleButtonStyle:any = {width:"36px", minWidth:"36px", margin:"4px",backgroundColor:this.muiTheme.palette.clockCircleColor};
+    let inactiveToggleButtonStyle:any = {width:"36px", minWidth:"36px", margin:"4px"};
+
     return (
       <div>
         <div style={{float: "left", width: "40%", height: "100%"}}>
@@ -411,7 +418,7 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
               </SelectField>
 
               <FlatButton 
-                style={this.props.showErrorIssues?this.activeToggleButtonStyle:this.inactiveToggleButtonStyle} 
+                style={this.props.showErrorIssues?activeToggleButtonStyle:inactiveToggleButtonStyle} 
                 icon={<ErrorIcon color={red500}/>}
                 onTouchTap={()=>{
                   this.props.history.replace(
@@ -426,7 +433,7 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
                     this.props.actions.onToggleShowErrorIssues();
                   }}/>
               <FlatButton 
-                style={this.props.showWarningIssues?this.activeToggleButtonStyle:this.inactiveToggleButtonStyle} 
+                style={this.props.showWarningIssues?activeToggleButtonStyle:inactiveToggleButtonStyle} 
                 icon={<WarningIcon color={lime500}/>}
                 onTouchTap={()=>{
                   this.props.history.replace(
@@ -441,7 +448,7 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
                     this.props.actions.onToggleShowWarningIssues();
                   }}/>
               <FlatButton 
-                style={this.props.showSuggestionIssues?this.activeToggleButtonStyle:this.inactiveToggleButtonStyle} 
+                style={this.props.showSuggestionIssues?activeToggleButtonStyle:inactiveToggleButtonStyle} 
                 icon={<InfoIcon color={green500}/>}
                 onTouchTap={()=>{
                   this.props.history.replace(
@@ -456,7 +463,7 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
                     this.props.actions.onToggleShowSuggestionIssues();
                   }}/>
               <FlatButton 
-                style={this.props.showHintIssues?this.activeToggleButtonStyle:this.inactiveToggleButtonStyle} 
+                style={this.props.showHintIssues?activeToggleButtonStyle:inactiveToggleButtonStyle} 
                 icon={<InfoIcon color={blue500}/>}
                 onTouchTap={()=>{
                   this.props.history.replace(
