@@ -11,7 +11,7 @@ import {
   TableRow,
   TableRowColumn,
 } from 'material-ui/Table';
-import {AreaChart, XAxis, YAxis, CartesianGrid, Tooltip, Area,ComposedChart,Bar} from 'recharts';
+import {AreaChart, XAxis, YAxis, CartesianGrid, Tooltip, Area,ComposedChart,Bar,ReferenceLine} from 'recharts';
 import {blue500, red500, green500, lime500} from 'material-ui/styles/colors';
 import {Link} from 'react-router-dom';
 
@@ -38,15 +38,31 @@ class Summary extends Component<ISummaryProps> {
         >
           <XAxis dataKey="id"/>
           <YAxis/>
-          <Tooltip/>
+          <Tooltip labelStyle={{color:"gray"}}/>
           <CartesianGrid strokeDasharray="3 3"/>
+          <ReferenceLine 
+            x={this.props.selectedRevisionId} 
+            stroke="green" 
+            isFront={true} />
           {/*<Bar dataKey="current.warningIssuesCount" barSize={10} fill="#413e00" />*/}
           <Area type='monotone' name="error"      dataKey='current.errorIssuesCount' stackId="1" stroke='#8884d8' fill={red500} />
           <Area type='monotone' name="warning"    dataKey='current.warningIssuesCount' stackId="1" stroke='#82ca9d' fill={lime500} />
           <Area type='monotone' name="suggestion" dataKey='current.suggestionIssuesCount' stackId="1" stroke='#ffc658' fill={green500} />
           <Area type='monotone' name="hint"       dataKey='current.hintIssuesCount' stackId="1" stroke='#ffc658' fill={blue500} />
         </ComposedChart>
-        <Table height={((this.props.hostHeight-64)/2-32) + "px"}>
+        <Table 
+          height={((this.props.hostHeight-64)/2-32) + "px"} 
+          onRowSelection={(selectedRows:number[])=>{
+            if(selectedRows.length !== 0)
+            {
+              this.props.actions.onChangeSelectedRevisionId(this.props.originalData.revisionInfos[selectedRows[0]].id);
+            }
+            else
+            {
+              this.props.actions.onChangeSelectedRevisionId("");
+            }
+            }}
+            >
           <TableHeader>
             <TableRow>
               <TableHeaderColumn>ID</TableHeaderColumn>
@@ -61,7 +77,7 @@ class Summary extends Component<ISummaryProps> {
           <TableBody>
             {this.props.originalData.revisionInfos.map(revisionInfo=>{
               return (
-                <TableRow key={`rev_${revisionInfo.id}`}>
+                <TableRow key={`rev_${revisionInfo.id}`} selected={revisionInfo.id === this.props.selectedRevisionId}>
                   <TableRowColumn><Link to={`/issues/${revisionInfo.id}`}>{revisionInfo.id}</Link></TableRowColumn>
                   <TableRowColumn>{revisionInfo.caption}</TableRowColumn>
                   <TableRowColumn>

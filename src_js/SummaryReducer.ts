@@ -4,6 +4,7 @@ import * as objectAssign from 'object-assign';
 
 export interface ISummaryState{
   originalData:IInspectResultsSummary;
+  selectedRevisionId?:string;
 }
 
 export class SummaryActionDispatcher
@@ -23,6 +24,9 @@ export class SummaryActionDispatcher
       this.dispatch( {type:"receivedInitialData", revisions: revisions});
     });
   }
+  onChangeSelectedRevisionId(id:string):void{
+    this.dispatch({type:'onChangeSelectedRevisionId', id:id});
+  }
 }
 
 
@@ -38,6 +42,8 @@ export function SummaryReducer(state: ISummaryState = initialSummaryState, actio
   {
   case 'receivedInitialData':
     return objectAssign({}, state, {originalData:action.revisions});
+  case 'onChangeSelectedRevisionId':
+    return objectAssign({}, state, {selectedRevisionId:action.id});
   default:
     return state;
   }

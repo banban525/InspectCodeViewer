@@ -565,3 +565,23 @@ export interface ComposedChart extends ComponentClass<ComposedChartProps> {
 }
 interface ComposedChart extends ComponentClass<ComposedChartProps> { }
 declare const ComposedChart: ComposedChart;
+
+export interface ReferenceLineProps extends Props<ReferenceLine>{
+  xAxisId?: String | Number;
+  yAxisId?: String | Number;
+  x?: string|Number;
+  y?: string|Number;
+  alwaysShow?:boolean;
+  viewBox?:any;
+  xAxis?:any;
+  yAxis?:any;
+  label?:String | Number | ReactElement<any> | (()=>any);
+  isFront?:boolean;
+  stroke?: string;
+}
+
+export interface ReferenceLine extends ComponentClass<ReferenceLineProps> {
+}
+interface ReferenceLine extends ComponentClass<ReferenceLineProps> { }
+declare const ReferenceLine: ReferenceLine;
+
