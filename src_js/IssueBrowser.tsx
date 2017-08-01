@@ -8,7 +8,6 @@ import * as injectTapEventPlugin from "react-tap-event-plugin";
 import { SelectableList } from "./SelectableList";
 import Subheader from 'material-ui/Subheader';
 import { ListItem } from "material-ui/List";
-import Iframe from '../node_modules/react-iframe/index.min.js';
 import * as objectAssign from 'object-assign';
 import darkBaseTheme from 'material-ui/styles/baseThemes/darkBaseTheme';
 import lightBaseTheme from 'material-ui/styles/baseThemes/lightBaseTheme';
@@ -501,11 +500,13 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
           </div>
           </div>
         <div style={{float: "none", width: "auto", marginLeft: "40%",height:`${this.props.hostHeight - 64}px`}}>
-          <Iframe url={this.getCodePageUri()} // ReSharper ignore TsResolvedFromInaccessibleModule
+          <iframe src={this.getCodePageUri()} // ReSharper ignore TsResolvedFromInaccessibleModule
             width="100%"
             height="70%"
-            display="initial"
-            position="relative"
+            style={{
+              display:"initial",
+              position:"relative"
+            }}
             allowFullScreen />
           <Paper height="200px" style={{float: "bottom"}} >
             Id:{this.props.selectedIssue.id}<br/>

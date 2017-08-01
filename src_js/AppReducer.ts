@@ -34,11 +34,16 @@ export class AppActionDispatcher
   }
 }
 
+let storedThemeId = 0
+if( typeof localStorage != "undefined" )
+{
+  storedThemeId = Number(localStorage["InspectCodeViewer.themaId"] || 0)
+}
 
 const initialAppState: IAppState = {
   hostWidth:window.innerWidth, 
   hostHeight:window.innerHeight,
-  selectedThermaId:Number(localStorage["InspectCodeViewer.themaId"] || 0),
+  selectedThermaId:storedThemeId,
   isDrawerOpened:false
 };
 
@@ -50,7 +55,10 @@ export function appReducer(state: IAppState = initialAppState, action: any) {
     document.getElementById("app").style.height = window.innerHeight.toString() + "px";
     return objectAssign({}, state, {hostWidth:window.innerWidth, hostHeight:window.innerHeight});
   case 'onChangedThema':
-    localStorage["InspectCodeViewer.themaId"] = action.value;
+    if( typeof localStorage != "undefined" )
+    {
+      localStorage["InspectCodeViewer.themaId"] = action.value;
+    }
     return objectAssign({}, state,{selectedThermaId:action.value});
   case 'onChangeDrawerOpened':
     return objectAssign({}, state,{isDrawerOpened:action.isOpened});
