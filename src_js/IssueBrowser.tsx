@@ -94,28 +94,6 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
   }
 
 
-  createIssueTreeListItem(tree: IGroup): JSX.Element[]
-  {
-    return tree.subGroups.map(group=>(
-      <ListItem
-        value={group.id}
-        open={group.isOpen}
-        primaryText={group.name}
-        key={group.id}
-        rightAvatar={<Badge badgeContent={group.badge} primary={true}/>}
-        nestedItems={this.createIssueTreeListItem(group)}
-        onNestedListToggle={()=>this.props.actions.onTouchTapListGroup(group)}
-        onTouchTap={()=>this.props.actions.onTouchTapListGroup(group)} />
-    )).concat(tree.items.map(issue=>(
-      <ListItem
-        value={issue.id}
-        initiallyOpen={false}
-        primaryText={issue.name}
-        key={issue.id}
-        nestedItems={[]}
-       />)));
-  }
-
   getCodePageUri():string
   {
     if(this.props.selectedRevision.id === "" || this.props.selectedIssue.file === "")
@@ -196,7 +174,9 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
           paginationPosition: 'top',
           hideSizePerPage: true,
           withFirstAndLast: false,
-          paginationPanel: this.createNavigationFactory(row.id, row.items.length)
+          paginationPanel: this.createNavigationFactory(row.id, row.items.length),
+          page:row.pageNo,
+          pageStartIndex:1
         } as Options}
        >
         <TableHeaderColumn isKey dataField='id' hidden>ID</TableHeaderColumn>
@@ -228,7 +208,9 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
           paginationPosition: 'top',
           hideSizePerPage: true,
           withFirstAndLast: false,
-          paginationPanel: this.createNavigationFactory(root.id, root.items.length)
+          paginationPanel: this.createNavigationFactory(root.id, root.items.length),
+          page:root.pageNo,
+          pageStartIndex:1
         } as Options}
        >
         <TableHeaderColumn isKey dataField='id' hidden>ID</TableHeaderColumn>
@@ -248,6 +230,8 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
         options={{
           paginationPosition: 'top',
           paginationPanel: this.createNavigationFactory(root.id, root.subGroups.length),
+          page:root.pageNo,
+          pageStartIndex:1,
           expanding: root.expandedChildren
           } as Options}
         selectRow={{
@@ -284,12 +268,18 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
       let curPageNo = props.currPage;
       let pageStartIndex = props.pageStartIndex;
       let sizePerPage = props.sizePerPage;
-      let totalPageCount = Math.floor(totalCount / sizePerPage) + 1;
+      let totalPageCount = Math.ceil(totalCount / sizePerPage);
       let navigationButtonStyle:any = {width:"36px", minWidth:"36px", margin:"4px"};
       return (
         <div>
           <div>
-            <FlatButton key={`${parentId}_page_0`} style={navigationButtonStyle} onTouchTap={ () => props.changePage(1) }>|&lt;</FlatButton>
+            <FlatButton 
+              key={`${parentId}_page_0`} 
+              style={navigationButtonStyle} 
+              onTouchTap={ () => {
+                //props.changePage(1);
+                this.props.actions.onChangePage(parentId, 1);
+                } }>|&lt;</FlatButton>
             {
               Array.apply(null, {length: 5}).map((val:any,index:number)=>{
                 let pageNo = curPageNo + index-2;
@@ -300,10 +290,18 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
                     key={`${parentId}_page_${pageNo}`}
                     disabled={disabled }
                     style={navigationButtonStyle} 
-                    onTouchTap={ () => props.changePage(pageNo) }>{disabled?"-":pageNo}</FlatButton>);
+                    onTouchTap={ () => {
+                      //props.changePage(pageNo);
+                      this.props.actions.onChangePage(parentId, pageNo);
+                      } }>{disabled?"-":pageNo}</FlatButton>);
               })
             }
-            <FlatButton style={navigationButtonStyle} onTouchTap={ () => props.changePage(totalPageCount) }>&gt;|</FlatButton>
+            <FlatButton 
+              style={navigationButtonStyle} 
+              onTouchTap={ () => {
+                //props.changePage(totalPageCount);
+                this.props.actions.onChangePage(parentId, totalPageCount);
+                } }>&gt;|</FlatButton>
           </div>
         </div>
       );
@@ -324,7 +322,9 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
           paginationPosition: 'top',
           sizePerPage:10,
           expanding: root.expandedChildren,
-          paginationPanel: this.createNavigationFactory(root.id, root.subGroups.length)
+          paginationPanel: this.createNavigationFactory(root.id, root.subGroups.length),
+          page:root.pageNo,
+          pageStartIndex:1
           } as Options}
         selectRow={{
           mode:'radio',
@@ -479,10 +479,10 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
                   }}/>
             </ToolbarGroup>
             <ToolbarGroup>
-              <IconButton>
+              <IconButton onTouchTap={()=>{this.props.actions.onMovePreviousIssue();}}>
                 <ArrowUpIcon />
               </IconButton>
-              <IconButton>
+              <IconButton onTouchTap={()=>{this.props.actions.onMoveNextIssue();}}>
                 <ArrowDownIcon />
               </IconButton>
             </ToolbarGroup>

@@ -41,10 +41,10 @@ export interface IGroup{
   name:string;
   subGroups:IGroup[];
   items:IItem[];
-  isOpen:boolean;
   badge:string;
   expandedChildren:string[];
   icon:IssueIconType;
+  pageNo:number;
 }
 export interface IItem{
   id:string;
@@ -145,9 +145,6 @@ export class IssueBrowserActionDispatcher
   onSelectedIssue(id:string):void{
     this.dispatch({type:"onSelectedIssue", id:id});
   }
-  onTouchTapListGroup(selectedGroup:IGroup):void{
-    this.dispatch( {type:"onTouchTapListGroup", selectedGroup:selectedGroup});
-  }
   onChangedRevision(index:number):void{
     this.onChangedRevisionId(this.getState().revisions.revisionInfos[index].id);
   }
@@ -178,6 +175,25 @@ export class IssueBrowserActionDispatcher
     this.dispatch( {type:"onSelectedIssueGroup", parent:parent, row:row});
   }
   onChangeDiffMode(value:number):void{
+    if(value === DiffMode.FixedFromFirst || value === DiffMode.IncresedFromFirst)
+    {
+      let firstId = this.getState().revisions.revisionInfos[0].id;
+      this.myAjax(`./revisions/${firstId}/data.js`, (data:IOriginalData)=>{
+        this.dispatch( {type:"revievedDiffBaseRevisionData", data:data});
+      });
+    }
+    if(value === DiffMode.FixedFromPrevious || value === DiffMode.IncresedFromPrevious)
+    {
+      let currentId = this.getState().currentData.metaInfo.id
+      let currentRev = this.getState().revisions.revisionInfos.filter(_=>_.id === currentId)[0];
+      let currentIndex = this.getState().revisions.revisionInfos.indexOf(currentRev);
+      let preId = this.getState().revisions.revisionInfos[currentIndex-1].id;
+
+      let firstId = this.getState().revisions.revisionInfos.indexOf
+      this.myAjax(`./revisions/${preId}/data.js`, (data:IOriginalData)=>{
+        this.dispatch( {type:"revievedDiffBaseRevisionData", data:data});
+      });
+    }
     this.dispatch({type:"onChangeDiffMode", value:value});
   }
   onToggleShowErrorIssues():void{
@@ -194,6 +210,15 @@ export class IssueBrowserActionDispatcher
   }
   setIssuesFilter(error:boolean, warning:boolean, suggestion:boolean, hint:boolean){
     this.dispatch({type:'setIssuesFilter', error:error, warning:warning, suggestion:suggestion, hint:hint});
+  }
+  onMovePreviousIssue():void{
+    this.dispatch({type:'onMovePreviousIssue'});
+  }
+  onMoveNextIssue():void{
+    this.dispatch({type:'onMoveNextIssue'});
+  }
+  onChangePage(parentId:string, pageNo:number):void{
+    this.dispatch({type:'onChangePage', parentId:parentId, pageNo:pageNo});
   }
 }
 
@@ -352,7 +377,6 @@ function createTree(
       var issueType = issueTypes.filter(issueType=>issueType.id === issueTypeId)[0];
       var group:IGroup = {
         id: issueTypeId,
-        isOpen: false,
         name: issueType.description,
         items: issuesGroup.map(issue=>{return {
           id: "ISSUE_" + issue.id,
@@ -363,19 +387,20 @@ function createTree(
         subGroups:[],
         badge: issuesGroup.length.toString(),
         expandedChildren:[],
-        icon: toIconType(issueType.severity)
+        icon: toIconType(issueType.severity),
+        pageNo:1
       };
       result = result.concat([group]);
     }
     return {
       id: "",
       name: "",
-      isOpen: true,
       subGroups: result,
       items:[],
       badge:"",
       expandedChildren:[],
-      icon:IssueIconType.none
+      icon:IssueIconType.none,
+      pageNo:1
     };
   }
   else if(issueGroupBy === IssueGroupByTypes.ProjectAndFile)
@@ -402,21 +427,18 @@ function createTree(
       })
       dic2[project] = dicTemp;
     })
-    console.log(dic2);
 
     var list = Object.keys(dic2).map(project=>{
       var issuesGroupbyFile:{[key:string]:IIssue[]} = dic2[project];
       var issueSum:number = 0;
       return {
         id: project,
-        isOpen: false,
         name: project,
         items: [],
         subGroups: Object.keys(issuesGroupbyFile).map(file=>{
           issueSum += issuesGroupbyFile[file].length;
           return {
             id: file,
-            isOpen: false,
             name: file,
             items: issuesGroupbyFile[file].map(issue=>{
               var issueType = issueTypes.filter(issueType=>issueType.id === issue.typeId)[0];
@@ -430,23 +452,25 @@ function createTree(
             subGroups:[],
             badge: issuesGroupbyFile[file].length.toString(),
             expandedChildren:[],
-            icon:IssueIconType.none
+            icon:IssueIconType.none,
+            pageNo:1
           };
         }),
         badge: issueSum.toString(),
         expandedChildren:[],
-        icon:IssueIconType.none
+        icon:IssueIconType.none,
+        pageNo:1
       };
     });
     return {
       id: "",
       name: "",
-      isOpen: true,
       subGroups: list,
       items:[],
       badge:"",
       expandedChildren:[],
-      icon:IssueIconType.none
+      icon:IssueIconType.none,
+      pageNo:1
     };
   }
 }
@@ -487,18 +511,76 @@ function updateGroups(tree:IGroup, updateTarget:IGroup):IGroup
   {
     return {
       id: tree.id,
-      isOpen: tree.isOpen,
       items: tree.items,
       name: tree.name,
       subGroups:newSubGroups,
       badge: tree.badge,
       expandedChildren:tree.expandedChildren,
-      icon:tree.icon
+      icon:tree.icon,
+      pageNo:1
     }
   }
   else{
     return null;
   }
+}
+
+function toSequence(tree:IGroup):IItem[]{
+  let result:IItem[] = tree.items;
+  tree.subGroups.map(group=>{
+    result = result.concat(toSequence(group));
+  });
+  return result;
+}
+
+function searchGroupsByVisitor(tree:IGroup, visitor:(group:IGroup)=>boolean):IGroup[]{
+  var results:IGroup[] = [];
+  if(visitor(tree))
+  {
+    results.push(tree);
+  }
+  tree.subGroups.forEach(group=>{
+    var founds = searchGroupsByVisitor(group, visitor);
+    results = results.concat(founds);
+  });
+  return results;
+}
+
+function getFirstIssue(tree:IGroup):IItem{
+  if(tree.items.length !== 0)
+  {
+    return tree.items[0];
+  }
+  if(tree.subGroups.length === 0)
+  {
+    return null;
+  }
+  return getFirstIssue(tree.subGroups[0]);
+}
+
+function openParentGroups(tree:IGroup, issueId:string):IGroup{
+  // close all group
+  var openedParents = searchGroupsByVisitor(tree, group=>group.expandedChildren.length !== 0);
+  openedParents.forEach(group => {
+    tree = updateGroups(tree, objectAssign({}, group, {expandedChildren:[]}) as IGroup);
+  });
+
+  var targetId = issueId;
+
+  var parentGroups = searchGroupsByVisitor(tree, group=>group.items.filter(item=>item.id === targetId).length > 0);
+  var issueIndex = parentGroups[0].items.indexOf(parentGroups[0].items.filter(_=>_.id === targetId)[0]);
+  var newParentGroup = objectAssign({}, parentGroups[0], {expandedChildren:[targetId], pageNo:Math.ceil((issueIndex+1)/10)});
+  tree = updateGroups(tree, newParentGroup);
+  
+  while(newParentGroup.id !== tree.id)
+  {
+    targetId = newParentGroup.id;
+    parentGroups = searchGroupsByVisitor(tree, group=>group.subGroups.filter(subGroup=>subGroup.id === targetId).length > 0);
+    issueIndex = parentGroups[0].subGroups.indexOf(parentGroups[0].subGroups.filter(_=>_.id === targetId)[0]);
+    newParentGroup = objectAssign({}, parentGroups[0], {expandedChildren:[targetId], pageNo:Math.ceil((issueIndex+1)/10)});
+    tree = updateGroups(tree, newParentGroup);
+  }
+  return tree;
 }
 
 export function IssueBrowserReducer(state: IIssueBrowserState = initialIssueBrowserState, action: any) {
@@ -509,7 +591,7 @@ export function IssueBrowserReducer(state: IIssueBrowserState = initialIssueBrow
 
     return objectAssign({}, state, {
       diffMode:action.diffMode, 
-      selectedIssueId:action.currentIssueId, 
+      selectedIssueId:"ISSUE_" + action.currentIssueId, 
       showErrorIssues:action.hideFilter.indexOf("error") < 0,
       showWarningIssues:action.hideFilter.indexOf("warning") < 0,
       showSuggestionIssues:action.hideFilter.indexOf("suggestion") < 0,
@@ -518,7 +600,7 @@ export function IssueBrowserReducer(state: IIssueBrowserState = initialIssueBrow
   case 'receivedInitialData':
     return objectAssign({}, state, {revisions:action.revisions});
   case 'onChangeIssuesGroupBy':
-    var newtree = createTree(
+    var tree = createTree(
       state.currentData.issues, 
       state.diffBaseData.issues, 
       state.currentData.issueTypes, 
@@ -529,7 +611,17 @@ export function IssueBrowserReducer(state: IIssueBrowserState = initialIssueBrow
       state.showSuggestionIssues,
       state.showHintIssues
       );
-    return objectAssign({}, state, {issuesGroupBy:action.value, tree:newtree});
+    var firstIssue = getFirstIssue(tree);
+    var firstIssueId = firstIssue.id;
+    tree = openParentGroups(tree, firstIssueId);
+
+    var selectedIssue = state.currentData.issues.filter(_=>_.id===firstIssueId.replace("ISSUE_",""))[0];
+    return objectAssign({}, state, {
+      issuesGroupBy:action.value, 
+      selectedIssue:selectedIssue, 
+      selectedIssueType:state.currentData.issueTypes.filter(_=>_.id === selectedIssue.typeId)[0],
+      selectedIssueId:firstIssueId,
+      tree:tree});
   case 'onSelectedIssueId':
     if(action.value.match(/^ISSUE_/) !== null)
     {
@@ -554,11 +646,6 @@ export function IssueBrowserReducer(state: IIssueBrowserState = initialIssueBrow
       return state;
     }
 
-  case 'onTouchTapListGroup':
-    var newSelectedGroup = objectAssign({}, action.selectedGroup, {isOpen:!action.selectedGroup.isOpen});
-    var newTree = updateGroups(state.tree, newSelectedGroup);
-    return objectAssign({}, state, {tree: newTree});
-
   case 'onChangedRevisionId':
     var selectedRevision = state.revisions.revisionInfos.filter(rev=>rev.id === action.revisionId)[0];
     if(selectedRevision === undefined)
@@ -579,24 +666,21 @@ export function IssueBrowserReducer(state: IIssueBrowserState = initialIssueBrow
       state.showWarningIssues,
       state.showSuggestionIssues,
       state.showHintIssues);
-    
-    //state.selectedRevision.id !== data.
+    var firstIssue = getFirstIssue(tree);
+    var firstIssueId = firstIssue.id;
+    tree = openParentGroups(tree, firstIssueId);
 
+    var selectedIssue = data.issues.filter(_=>_.id===firstIssueId.replace("ISSUE_",""))[0];
+    
     return objectAssign({}, state, {
-      selectedIssue:data.issues[0], 
-      selectedIssueType:data.issueTypes.filter(_=>_.id === data.issues[0].typeId)[0],
+      selectedIssue:selectedIssue, 
+      selectedIssueType:data.issueTypes.filter(_=>_.id === selectedIssue.typeId)[0],
+      selectedIssueId:firstIssueId,
       currentData:data,
       selectedRevision:data.metaInfo,
       tree: tree
     });
-  case 'onChangedDiffBaseRevision':
-    var selectedRevision = state.revisions.revisionInfos[action.index];
-
-    return objectAssign({}, state, {
-      selectedDiffBaseRevision:selectedRevision, 
-      selectedDiffBaseRevisionId:selectedRevision
-    });
-
+  
   case 'revievedDiffBaseRevisionData':
     var diffBaseData:IOriginalData = action.data;
     var tree = createTree(
@@ -609,8 +693,17 @@ export function IssueBrowserReducer(state: IIssueBrowserState = initialIssueBrow
       state.showWarningIssues,
       state.showSuggestionIssues,
       state.showHintIssues);
+    var firstIssue = getFirstIssue(tree);
+    var firstIssueId = firstIssue.id;
+    tree = openParentGroups(tree, firstIssueId);
 
+    var selectedIssue = state.currentData.issues.filter(_=>_.id===firstIssueId.replace("ISSUE_",""))[0];
+    
     return objectAssign({}, state, {
+      selectedIssue:selectedIssue, 
+      selectedIssueType:state.currentData.issueTypes.filter(_=>_.id === selectedIssue.typeId)[0],
+      selectedIssueId:firstIssueId,
+
       diffBaseData:diffBaseData,
       selectedDiffBaseRevision:diffBaseData.metaInfo,
       tree: tree
@@ -638,7 +731,10 @@ export function IssueBrowserReducer(state: IIssueBrowserState = initialIssueBrow
       var selectedIssue = currentIssues.filter(issue=>issue.id === id)[0];
       var selectedIssueType = currentIssueTypes.filter(issueType=>issueType.id == selectedIssue.typeId)[0];
       
-      return objectAssign({}, state, {selectedIssueId:action.id, selectedIssue: selectedIssue, selectedIssueType:selectedIssueType});
+      return objectAssign({}, state, {
+        selectedIssueId:action.id, 
+        selectedIssue: selectedIssue, 
+        selectedIssueType:selectedIssueType});
     }
     else
     {
@@ -658,7 +754,30 @@ export function IssueBrowserReducer(state: IIssueBrowserState = initialIssueBrow
     var newTree = updateGroups(state.tree, newParent);
     return objectAssign({}, state, {tree:newTree});
   case 'onChangeDiffMode':
-    return objectAssign({}, state,{diffMode:action.value});
+    var tree = createTree(
+      state.currentData.issues, 
+      state.diffBaseData.issues,
+      state.currentData.issueTypes, 
+      state.issuesGroupBy,
+      action.value,
+      state.showErrorIssues,
+      state.showWarningIssues,
+      state.showSuggestionIssues,
+      state.showHintIssues);
+
+    var firstIssue = getFirstIssue(tree);
+    var firstIssueId = firstIssue.id;
+    tree = openParentGroups(tree, firstIssueId);
+
+    var selectedIssue = state.currentData.issues.filter(_=>_.id===firstIssueId.replace("ISSUE_",""))[0];
+    
+    return objectAssign({}, state,{
+      selectedIssue:selectedIssue, 
+      selectedIssueType:state.currentData.issueTypes.filter(_=>_.id === selectedIssue.typeId)[0],
+      selectedIssueId:firstIssueId,
+      diffMode:action.value,
+      tree:tree
+    });
   case 'onToggleShowErrorIssues':
     var tree = createTree(
       state.currentData.issues, 
@@ -670,7 +789,18 @@ export function IssueBrowserReducer(state: IIssueBrowserState = initialIssueBrow
       state.showWarningIssues,
       state.showSuggestionIssues,
       state.showHintIssues);
-    return objectAssign({}, state,{showErrorIssues:!state.showErrorIssues, tree:tree});
+    var firstIssue = getFirstIssue(tree);
+    var firstIssueId = firstIssue.id;
+    tree = openParentGroups(tree, firstIssueId);
+
+    var selectedIssue = state.currentData.issues.filter(_=>_.id===firstIssueId.replace("ISSUE_",""))[0];
+    
+    return objectAssign({}, state,{
+      showErrorIssues:!state.showErrorIssues, 
+      selectedIssue:selectedIssue, 
+      selectedIssueType:state.currentData.issueTypes.filter(_=>_.id === selectedIssue.typeId)[0],
+      selectedIssueId:firstIssueId,
+      tree:tree});
   case 'onToggleShowWarningIssues':
     var tree = createTree(
       state.currentData.issues, 
@@ -682,7 +812,18 @@ export function IssueBrowserReducer(state: IIssueBrowserState = initialIssueBrow
       !state.showWarningIssues,
       state.showSuggestionIssues,
       state.showHintIssues);
-    return objectAssign({}, state,{showWarningIssues:!state.showWarningIssues, tree:tree});
+    var firstIssue = getFirstIssue(tree);
+    var firstIssueId = firstIssue.id;
+    tree = openParentGroups(tree, firstIssueId);
+
+    var selectedIssue = state.currentData.issues.filter(_=>_.id===firstIssueId.replace("ISSUE_",""))[0];
+
+    return objectAssign({}, state,{
+      showWarningIssues:!state.showWarningIssues,
+      selectedIssue:selectedIssue, 
+      selectedIssueType:state.currentData.issueTypes.filter(_=>_.id === selectedIssue.typeId)[0],
+      selectedIssueId:firstIssueId,
+      tree:tree});
   case 'onToggleShowSuggestionIssues':
     var tree = createTree(
       state.currentData.issues, 
@@ -694,7 +835,18 @@ export function IssueBrowserReducer(state: IIssueBrowserState = initialIssueBrow
       state.showWarningIssues,
       !state.showSuggestionIssues,
       state.showHintIssues);
-    return objectAssign({}, state,{showSuggestionIssues:!state.showSuggestionIssues, tree:tree});
+    var firstIssue = getFirstIssue(tree);
+    var firstIssueId = firstIssue.id;
+    tree = openParentGroups(tree, firstIssueId);
+
+    var selectedIssue = state.currentData.issues.filter(_=>_.id===firstIssueId.replace("ISSUE_",""))[0];
+
+    return objectAssign({}, state,{
+      showSuggestionIssues:!state.showSuggestionIssues, 
+      selectedIssue:selectedIssue, 
+      selectedIssueType:state.currentData.issueTypes.filter(_=>_.id === selectedIssue.typeId)[0],
+      selectedIssueId:firstIssueId,
+      tree:tree});
   case 'onToggleShowHintIssues':
     var tree = createTree(
       state.currentData.issues, 
@@ -706,7 +858,18 @@ export function IssueBrowserReducer(state: IIssueBrowserState = initialIssueBrow
       state.showWarningIssues,
       state.showSuggestionIssues,
       !state.showHintIssues);
-    return objectAssign({}, state,{showHintIssues:!state.showHintIssues, tree:tree});
+    var firstIssue = getFirstIssue(tree);
+    var firstIssueId = firstIssue.id;
+    tree = openParentGroups(tree, firstIssueId);
+
+    var selectedIssue = state.currentData.issues.filter(_=>_.id===firstIssueId.replace("ISSUE_",""))[0];
+
+    return objectAssign({}, state,{
+      showHintIssues:!state.showHintIssues, 
+      selectedIssue:selectedIssue, 
+      selectedIssueType:state.currentData.issueTypes.filter(_=>_.id === selectedIssue.typeId)[0],
+      selectedIssueId:firstIssueId,
+      tree:tree});
   case 'setIssuesFilter':
     var tree = createTree(
       state.currentData.issues, 
@@ -718,14 +881,106 @@ export function IssueBrowserReducer(state: IIssueBrowserState = initialIssueBrow
       action.warning,
       action.suggestion,
       action.hint);
+    var firstIssue = getFirstIssue(tree);
+    var firstIssueId = firstIssue.id;
+    tree = openParentGroups(tree, firstIssueId);
+
+    var selectedIssue = state.currentData.issues.filter(_=>_.id===firstIssueId.replace("ISSUE_",""))[0];
+
     return objectAssign({}, state, {
       showErrorIssues:action.error,
       showWarningIssues:action.warning,
       showSuggestionIssues:action.suggestion,
       showHintIssues:action.hint,
+      selectedIssue:selectedIssue, 
+      selectedIssueType:state.currentData.issueTypes.filter(_=>_.id === selectedIssue.typeId)[0],
+      selectedIssueId:firstIssueId,
       tree:tree
     });
+  case 'onMovePreviousIssue':
+    var items = toSequence(state.tree);
+    if(items.length === 0)
+    {
+      return state;
+    }
 
+    var currentItem = items.filter(_=>_.id === state.selectedIssueId)[0];
+    var currentIndex = items.indexOf(currentItem);
+    var nextItem = items[currentIndex - 1];
+    if(currentIndex <= 0)
+    {
+      nextItem = items[0];
+    }
+    if(currentIndex > items.length - 1)
+    {
+      nextItem = items[items.length-1];
+    }
+    var nextItemId = nextItem.id.replace("ISSUE_", "");
+
+    var currentIssues = state.currentData.issues;
+    var currentIssueTypes = state.currentData.issueTypes;
+    if(state.diffMode === DiffMode.FixedFromFirst || state.diffMode === DiffMode.FixedFromPrevious)
+    {
+      currentIssues = state.diffBaseData.issues;
+      currentIssueTypes = state.diffBaseData.issueTypes;
+    }
+
+    var nextIssue = currentIssues.filter(_=>_.id === nextItemId)[0];
+    var nextIssueType = currentIssueTypes.filter(_=>_.id === nextIssue.typeId);
+
+    var tree = openParentGroups(state.tree, nextItem.id);
+
+    return objectAssign({}, state, {
+      tree:tree,
+      selectedIssueId:nextItem.id, 
+      selectedIssue: nextIssue, 
+      selectedIssueType:nextIssueType});
+  case 'onMoveNextIssue':
+    var items = toSequence(state.tree);
+    if(items.length === 0)
+    {
+      return state;
+    }
+
+    var currentItem = items.filter(_=>_.id === state.selectedIssueId)[0];
+    var currentIndex = items.indexOf(currentItem);
+    var nextItem = items[currentIndex + 1];
+    if(currentIndex < 0)
+    {
+      nextItem = items[0];
+    }
+    if(currentIndex >= items.length - 1)
+    {
+      nextItem = items[items.length-1];
+    }
+    var nextItemId = nextItem.id.replace("ISSUE_", "");
+
+    var currentIssues = state.currentData.issues;
+    var currentIssueTypes = state.currentData.issueTypes;
+    if(state.diffMode === DiffMode.FixedFromFirst || state.diffMode === DiffMode.FixedFromPrevious)
+    {
+      currentIssues = state.diffBaseData.issues;
+      currentIssueTypes = state.diffBaseData.issueTypes;
+    }
+
+    var nextIssue = currentIssues.filter(_=>_.id === nextItemId)[0];
+    var nextIssueType = currentIssueTypes.filter(_=>_.id === nextIssue.typeId);
+
+
+    var tree = openParentGroups(state.tree, nextItem.id);
+
+    return objectAssign({}, state, {
+      tree:tree,
+      selectedIssueId:nextItem.id, 
+      selectedIssue: nextIssue, 
+      selectedIssueType:nextIssueType});  
+  case 'onChangePage':
+    var group = searchGroup(state.tree, action.parentId);
+    var newGroup = objectAssign({}, group, {pageNo:action.pageNo});
+    var tree = updateGroups(state.tree, newGroup);
+    return objectAssign({}, state, {
+      tree:tree
+    })
   default:
     return state;
   }
