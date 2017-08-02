@@ -100,6 +100,7 @@ export class IssueBrowserActionDispatcher
 
         this.myAjax(`./revisions/${currentRevisionId}/data.js`, (data:IOriginalData)=>{
           this.dispatch( {type:"revievedRevisionData", data:data});
+          this.dispatch( {type:"onSelectedIssueId", value:"ISSUE_"+currentIssueId});
         });
       });
     }
@@ -128,6 +129,7 @@ export class IssueBrowserActionDispatcher
       }
       this.myAjax(`./revisions/${currentRevisionId}/data.js`, (data:IOriginalData)=>{
         this.dispatch( {type:"revievedRevisionData", data:data});
+        this.dispatch( {type:"onSelectedIssueId", value:"ISSUE_"+currentIssueId});
       });
     }
     this.dispatch({type:"getInitialData2", 
@@ -638,8 +640,14 @@ console.log(action);
 
       var selectedIssue = currentIssues.filter(issue=>issue.id === id)[0];
       var selectedIssueType = currentIssueTypes.filter(issueType=>issueType.id == selectedIssue.typeId)[0];
-      
-      return objectAssign({}, state, {selectedIssueId:action.value, selectedIssue: selectedIssue, selectedIssueType:selectedIssueType});
+
+      var tree = openParentGroups(state.tree, action.value);
+
+      return objectAssign({}, state, {
+        selectedIssueId:action.value, 
+        selectedIssue: selectedIssue, 
+        selectedIssueType:selectedIssueType,
+        tree:tree});
     }
     else
     {

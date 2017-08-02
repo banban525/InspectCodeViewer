@@ -63,6 +63,7 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
 
     var queyparameters = this.props.location.search
     var revisionId = this.props.match.params.revid;
+    var issueId = this.props.match.params.issueid;
     var parsed  = querystring.parse(queyparameters);
     var hideStr:string = "";
     if(parsed.hidefilter !== undefined)
@@ -90,7 +91,7 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
         diffMode = DiffMode.FixedFromFirst;
       }
     }
-    this.props.actions.getInitialData2(revisionId, diffMode, "", hideStr);
+    this.props.actions.getInitialData2(revisionId, diffMode, issueId, hideStr);
   }
 
 
@@ -165,6 +166,14 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
           hideSelectColumn: true,
           clickToSelect: true,
           onSelect: (row: any, isSelected: boolean, e: any)=>{
+            this.props.history.push(
+              this.createUri(this.props.selectedRevision.id, 
+              row.id.replace("ISSUE_",""),
+              this.props.diffMode,
+              this.props.showErrorIssues,
+              this.props.showWarningIssues,
+              this.props.showSuggestionIssues,
+              this.props.showHintIssues));
             this.props.actions.onSelectedIssue(row.id as string);
             return false;
           },
@@ -199,6 +208,14 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
           hideSelectColumn: true,
           clickToSelect: true,
           onSelect: (row: any, isSelected: boolean, e: any)=>{
+            this.props.history.push(
+              this.createUri(this.props.selectedRevision.id, 
+              row.id.replace("ISSUE_",""),
+              this.props.diffMode,
+              this.props.showErrorIssues,
+              this.props.showWarningIssues,
+              this.props.showSuggestionIssues,
+              this.props.showHintIssues));
             this.props.actions.onSelectedIssue(row.id as string);
             return false;
           },
@@ -354,8 +371,9 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
     {
       search = "?hidefilter="+search;
     }
+    console.log(issueId);
     return {
-      pathname:`/issues/${selectedRevisionId}`,
+      pathname:`/issues/${selectedRevisionId}/${issueId}`,
       search:search
     };
   }
@@ -409,7 +427,9 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
               <SelectField
                 floatingLabelText="Issues Group By"
                 value={this.props.issuesGroupBy}
-                onChange={(event:any, index:number, value:number)=>this.props.actions.onChangeIssuesGroupBy(value)}
+                onChange={(event:any, index:number, value:number)=>{
+                  this.props.actions.onChangeIssuesGroupBy(value);
+                  }}
                 style={{height:"72px"}}
               >
                 <MenuItem value={1} primaryText="Directory and File" />
@@ -423,7 +443,7 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
                 onTouchTap={()=>{
                   this.props.history.replace(
                     this.createUri(this.props.selectedRevision.id, 
-                    this.props.selectedIssueId,
+                    this.props.selectedIssue.id,
                     this.props.diffMode,
                     !this.props.showErrorIssues,
                     this.props.showWarningIssues,
@@ -438,7 +458,7 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
                 onTouchTap={()=>{
                   this.props.history.replace(
                     this.createUri(this.props.selectedRevision.id, 
-                    this.props.selectedIssueId,
+                    this.props.selectedIssue.id,
                     this.props.diffMode,
                     this.props.showErrorIssues,
                     !this.props.showWarningIssues,
@@ -453,7 +473,7 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
                 onTouchTap={()=>{
                   this.props.history.replace(
                     this.createUri(this.props.selectedRevision.id, 
-                    this.props.selectedIssueId,
+                    this.props.selectedIssue.id,
                     this.props.diffMode,
                     this.props.showErrorIssues,
                     this.props.showWarningIssues,
@@ -468,7 +488,7 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
                 onTouchTap={()=>{
                   this.props.history.replace(
                     this.createUri(this.props.selectedRevision.id, 
-                    this.props.selectedIssueId,
+                    this.props.selectedIssue.id,
                     this.props.diffMode,
                     this.props.showErrorIssues,
                     this.props.showWarningIssues,
