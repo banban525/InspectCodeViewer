@@ -316,7 +316,7 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
         striped
         expandableRow={ (row)=>true }
         expandComponent={ this.createExpandComponent }
-        maxHeight={(this.props.hostHeight - 24-64-72-72-128) + "px"}
+        maxHeight={(this.props.hostHeight-64-72-72-32) + "px"}
         pagination
         options={{
           paginationPosition: 'top',
@@ -502,26 +502,29 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
           })}
           </SelectField>*/}
 
-          <div style={{height:(this.props.hostHeight - 24-64-72-72) + "px"}}>
+          <div style={{height:(this.props.hostHeight-64-72-72) + "px"}}>
             {this.createIssueTreeElement(this.props.tree)}
           </div>
           </div>
         <div style={{float: "none", width: "auto", marginLeft: "40%",height:`${this.props.hostHeight - 64}px`}}>
           <iframe src={this.getCodePageUri()} // ReSharper ignore TsResolvedFromInaccessibleModule
             width="100%"
-            height="70%"
+            //height={this.props.hostHeight - 64 - 100}
             style={{
+              height:`calc(${this.props.hostHeight - 64}px - 12em)`,
               display:"initial",
               position:"relative"
             }}
             allowFullScreen />
-          <Paper height="200px" style={{float: "bottom"}} >
-            Id:{this.props.selectedIssue.id}<br/>
-            Message:{this.props.selectedIssue.message}<br/>
-            Project:{this.props.selectedIssue.project}<br/>
-            File:{this.props.selectedIssue.file} ({this.props.selectedIssue.line}:{this.props.selectedIssue.column})<br/>
-            Url:<a target="_blank" href={this.props.selectedIssueType.wikiUrl}>{this.props.selectedIssueType.wikiUrl}</a><br/>
-          </Paper>
+          <div style={{height:"12em", float:"bottom"}}>
+            <Paper>
+              Id:{this.props.selectedIssue.id}<br/>
+              Message:{this.props.selectedIssue.message}<br/>
+              Project:{this.props.selectedIssue.project}<br/>
+              File:{this.props.selectedIssue.file} ({this.props.selectedIssue.line}:{this.props.selectedIssue.column})<br/>
+              Url:<a target="_blank" href={this.props.selectedIssueType.wikiUrl}>{this.props.selectedIssueType.wikiUrl}</a><br/>
+            </Paper>
+          </div>
         </div>
 
 

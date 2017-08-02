@@ -59,7 +59,7 @@ class App extends Component<IAppProps> {
               <MenuItem key="thermaDark" value={1} primaryText="Dark" />
             </SelectField>
           } />
-        <Paper style={{height: (this.props.hostHeight - 24-64) + "px", overflow:"hidden"}}>
+        <Paper style={{height: (this.props.hostHeight -64) + "px", overflow:"hidden"}}>
           {this.props.children}
         </Paper>
 

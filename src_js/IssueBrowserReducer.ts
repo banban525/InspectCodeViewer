@@ -584,7 +584,7 @@ function openParentGroups(tree:IGroup, issueId:string):IGroup{
 }
 
 export function IssueBrowserReducer(state: IIssueBrowserState = initialIssueBrowserState, action: any) {
-
+console.log(action);
   switch (action.type) 
   {
   case 'getInitialData2':

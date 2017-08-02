@@ -33,7 +33,7 @@ class Summary extends Component<ISummaryProps> {
       <div>
         <ComposedChart 
           width={this.props.hostWidth/2}
-          height={(this.props.hostHeight-64)/2-32}
+          height={(this.props.hostHeight-64)/2}
           data={this.props.originalData.revisionInfos}
         >
           <XAxis dataKey="id"/>
@@ -51,7 +51,7 @@ class Summary extends Component<ISummaryProps> {
           <Area type='monotone' name="hint"       dataKey='current.hintIssuesCount' stackId="1" stroke='#ffc658' fill={blue500} />
         </ComposedChart>
         <Table 
-          height={((this.props.hostHeight-64)/2-32) + "px"} 
+          height={((this.props.hostHeight-64)/2-56) + "px"} 
           onRowSelection={(selectedRows:number[])=>{
             if(selectedRows.length !== 0)
             {

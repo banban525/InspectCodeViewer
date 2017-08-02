@@ -56,7 +56,15 @@ function myAjax(url:string, onRecieved:(data:any)=>void):void {
       myAjax(command.url, command.onRecieved);
     }
   }
-
+  s.onerror=()=>{
+    console.log("onerror");
+    isScriptBlockWorking = false;
+    if(ajaxQueue.length !== 0){
+      var command = ajaxQueue.pop();
+      myAjax(command.url, command.onRecieved);
+    }  
+  }
+  
   var ele = document.getElementById("script");
   ele.appendChild(s);
 }
