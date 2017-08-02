@@ -1,0 +1,370 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Code Viewer</title>
+  <link id="codestyle" rel="stylesheet" type="text/css" href="../../../css/theme.css" media="all" />
+  <script type="text/javascript" src="../../../js/syntaxhighlighter.js"></script>
+  <style>
+    .syntaxhighlighter {
+      overflow-y: hidden !important;
+    }
+  </style>
+</head>
+<body>
+<pre id="code" class="brush: csharp">import * as React from &quot;react&quot;;
+import { Component } from &quot;react&quot;;
+import SelectField from &apos;material-ui/SelectField&apos;;
+import MenuItem from &apos;material-ui/MenuItem&apos;;
+import getMuiTheme from &quot;material-ui/styles/getMuiTheme&quot;;
+import MuiThemeProvider from &quot;material-ui/styles/MuiThemeProvider&quot;;
+import * as injectTapEventPlugin from &quot;react-tap-event-plugin&quot;;
+import { SelectableList } from &quot;./SelectableList&quot;;
+import Subheader from &apos;material-ui/Subheader&apos;;
+import { ListItem } from &quot;material-ui/List&quot;;
+import Iframe from &apos;../node_modules/react-iframe/index.min.js&apos;;
+import * as objectAssign from &apos;object-assign&apos;;
+import darkBaseTheme from &apos;material-ui/styles/baseThemes/darkBaseTheme&apos;;
+import lightBaseTheme from &apos;material-ui/styles/baseThemes/lightBaseTheme&apos;;
+import Paper from &apos;material-ui/Paper&apos;;
+import AppBar from &apos;material-ui/AppBar&apos;;
+import Badge from &apos;material-ui/Badge&apos;;
+import { BootstrapTable, TableHeaderColumn, Options,SelectRow,SelectRowMode } from &quot;react-bootstrap-table&quot;;
+import &quot;jquery&quot;;
+import WarningIcon from &apos;material-ui/svg-icons/alert/warning&apos;;
+import ErrorIcon from &apos;material-ui/svg-icons/alert/error&apos;;
+import InfoIcon from &apos;material-ui/svg-icons/action/info&apos;;
+import {blue500, red500, green500, lime500} from &apos;material-ui/styles/colors&apos;;
+import {IssueGroupByTypes, IAppState,IInspectResultsSummary,IssueIconType,IIssue,IIssueType,IGroup,IItem,IOriginalData,AppActionDispatcher} from &apos;./AppReducer&apos;;
+
+injectTapEventPlugin();
+
+interface IAppProps extends IAppState
+{
+  actions:AppActionDispatcher;
+}
+
+declare var __data: any;
+
+class App extends Component&lt;IAppProps&gt; {
+  resizeTimer: any= null;
+  interval = Math.floor(1000 / 60 * 10);
+
+  constructor(props: IAppProps) {
+    super(props);
+    this.expandComponent = this.expandComponent.bind(this);
+    this.formatIssuGroup = this.formatIssuGroup.bind(this);
+    this.createIssueTreeElement = this.createIssueTreeElement.bind(this);
+    this.createIssueGroupElement = this.createIssueGroupElement.bind(this);
+    this.createIssueElement = this.createIssueElement.bind(this);
+    this.createExpandComponent = this.createExpandComponent.bind(this);
+
+    window.addEventListener(&quot;resize&quot;, (): void =&gt; {
+      if (this.resizeTimer !== null) {
+        clearTimeout(this.resizeTimer as NodeJS.Timer);
+      }
+      this.resizeTimer = setTimeout(() =&gt; {
+        this.props.actions.onResized();
+      }, this.interval);
+    });
+
+    this.props.actions.getInitialData();
+  }
+
+
+  createIssueTreeListItem(tree: IGroup): JSX.Element[]
+  {
+    return tree.subGroups.map(group=&gt;(
+      &lt;ListItem
+        value={group.id}
+        open={group.isOpen}
+        primaryText={group.name}
+        key={group.id}
+        rightAvatar={&lt;Badge badgeContent={group.badge} primary={true}/&gt;}
+        nestedItems={this.createIssueTreeListItem(group)}
+        onNestedListToggle={()=&gt;this.props.actions.onTouchTapListGroup(group)}
+        onTouchTap={()=&gt;this.props.actions.onTouchTapListGroup(group)} /&gt;
+    )).concat(tree.items.map(issue=&gt;(
+      &lt;ListItem
+        value={issue.id}
+        initiallyOpen={false}
+        primaryText={issue.name}
+        key={issue.id}
+        nestedItems={[]}
+       /&gt;)));
+  }
+
+  getCodePageUri():string
+  {
+    if(this.props.selectedRevision.id !== &quot;&quot; &amp;&amp; this.props.selectedIssue.file !== &quot;&quot;)
+    {
+       var result = `./revisions/${this.props.selectedRevision.id}/codes/`;
+       result += `${this.props.selectedIssue.file.replace(/\\/g, &quot;_&quot;)}.html`;
+       result += `?line=${this.props.selectedIssue.line}`;
+       if(this.props.selectedThermaId === 1)
+       {
+         result += &quot;&amp;therma=dark&quot;;
+       }
+       return result;
+    }
+    else
+    {
+      return &quot;./empty.html&quot;
+    }
+  }
+
+  toIconElement(icon: IssueIconType):any{
+    if(icon === IssueIconType.error)
+    {
+      return (&lt;ErrorIcon color={red500}/&gt;);
+    }
+    if(icon === IssueIconType.warning)
+    {
+      return (&lt;WarningIcon color={lime500}/&gt;);
+    }
+    if(icon === IssueIconType.suggestion)
+    {
+      return (&lt;InfoIcon color={green500}/&gt;);
+    }
+    if(icon === IssueIconType.hint)
+    {
+      return (&lt;InfoIcon color={blue500}/&gt;);
+    }
+    return (&lt;span/&gt;);
+  }
+  formatIssuGroup(cell:any, row:any):any {
+    var group = row as IGroup
+    
+    return (&lt;div&gt;
+      &lt;div style={{textAlign:&quot;left&quot; ,float:&quot;left&quot;}}&gt;{this.toIconElement(group.icon)}{cell}&lt;/div&gt;
+      &lt;div style={{textAlign:&quot;right&quot;}}&gt;
+        &lt;Badge
+          badgeContent={group.badge}
+          style={{ 
+            marginRight:&quot;12px&quot; ,
+            paddingBottom: &quot;0px&quot;
+            }}
+          primary={true}/&gt;&lt;/div&gt;
+    &lt;/div&gt;);
+  }
+
+  expandComponent(row:any):any{
+    return (
+      &lt;BootstrapTable 
+        data={ row.items }
+        striped
+        selectRow={{
+          mode: &apos;radio&apos;,
+          bgColor: darkBaseTheme.palette.primary2Color,
+          hideSelectColumn: true,
+          clickToSelect: true,
+          onSelect: (row: any, isSelected: boolean, e: any)=&gt;{
+            this.props.actions.onSelectedIssue(row.id as string);
+            return false;
+          },
+          selected: [this.props.selectedIssueId]
+        }}
+        options={{
+           paginationSize: 3,
+           hideSizePerPage: true,
+           withFirstAndLast: false
+        } as Options}
+        pagination
+       &gt;
+        &lt;TableHeaderColumn isKey dataField=&apos;id&apos; hidden&gt;ID&lt;/TableHeaderColumn&gt;
+        &lt;TableHeaderColumn dataField=&apos;name&apos;&gt;&lt;/TableHeaderColumn&gt;
+      &lt;/BootstrapTable&gt;
+    );
+  }
+
+  createIssueElement(root:IGroup):any
+  {
+    var isLargeData = root.items.length &gt; 10;
+    return (
+      &lt;BootstrapTable 
+        data={ root.items }
+        striped
+        selectRow={{
+          mode: &apos;radio&apos;,
+          bgColor: darkBaseTheme.palette.primary2Color,
+          hideSelectColumn: true,
+          clickToSelect: true,
+          onSelect: (row: any, isSelected: boolean, e: any)=&gt;{
+            this.props.actions.onSelectedIssue(row.id as string);
+            return false;
+          },
+          selected: [this.props.selectedIssueId]
+        }}
+        options={{
+           paginationSize: 3,
+           hideSizePerPage: true,
+           withFirstAndLast: false
+        } as Options}
+        pagination = {isLargeData}
+       &gt;
+        &lt;TableHeaderColumn isKey dataField=&apos;id&apos; hidden&gt;ID&lt;/TableHeaderColumn&gt;
+        &lt;TableHeaderColumn dataField=&apos;name&apos;&gt;&lt;/TableHeaderColumn&gt;
+      &lt;/BootstrapTable&gt;
+    );
+  }
+  createIssueGroupElement(root: IGroup):any{
+    var isLargeData = root.subGroups.length &gt; 10;
+    return (
+      &lt;BootstrapTable 
+        data={root.subGroups} 
+        striped
+        expandableRow={ (row)=&gt;true }
+        expandComponent={ this.createExpandComponent }
+        pagination = {isLargeData}
+        options={{
+          paginationPosition: &apos;top&apos;,
+          expanding: root.expandedChildren
+          } as Options}
+        selectRow={{
+          mode:&apos;radio&apos;,
+          clickToSelect: true,
+          clickToExpand: true,
+          hideSelectColumn: true,
+          onSelect:(row: any, isSelected: boolean, e: any)=&gt;{
+            this.props.actions.onSelectedIssueGroup(root, row);
+            return false;
+          }
+        } as SelectRow}
+      &gt;
+          &lt;TableHeaderColumn isKey dataField=&apos;id&apos; hidden&gt;ID&lt;/TableHeaderColumn&gt;
+          &lt;TableHeaderColumn dataField=&apos;name&apos; dataFormat={this.formatIssuGroup}&gt;&lt;/TableHeaderColumn&gt;
+      &lt;/BootstrapTable&gt;
+    );
+  }
+
+  createExpandComponent(target: IGroup)
+  {
+    if(target.subGroups.length &gt; 0)
+    {
+      return this.createIssueGroupElement(target);
+    }
+    else
+    {
+      return this.createIssueElement(target);
+    }
+  }
+
+  createIssueTreeElement(root: IGroup):any{
+    return (
+      &lt;BootstrapTable 
+        data={root.subGroups} 
+        striped
+        expandableRow={ (row)=&gt;true }
+        expandComponent={ this.createExpandComponent }
+        pagination
+        maxHeight={(this.props.hostHeight - 24-64-72-72-128) + &quot;px&quot;}
+        options={{
+          paginationPosition: &apos;top&apos;,
+          expanding: root.expandedChildren
+          } as Options}
+        selectRow={{
+          mode:&apos;radio&apos;,
+          clickToSelect: true,
+          clickToExpand: true,
+          hideSelectColumn: true,
+          onSelect:(row: any, isSelected: boolean, e: any)=&gt;{
+            this.props.actions.onSelectedIssueGroup(root, row);
+            return false;
+          }
+        } as SelectRow}
+      &gt;
+          &lt;TableHeaderColumn isKey dataField=&apos;id&apos; hidden&gt;ID&lt;/TableHeaderColumn&gt;
+          &lt;TableHeaderColumn dataField=&apos;name&apos; dataFormat={this.formatIssuGroup}&gt;&lt;/TableHeaderColumn&gt;
+      &lt;/BootstrapTable&gt;
+    );
+  }
+
+  render() {
+    return (
+      &lt;MuiThemeProvider muiTheme={getMuiTheme(this.props.selectedThermaId===0?lightBaseTheme:darkBaseTheme)}&gt;
+        &lt;div&gt;
+        &lt;link rel=&quot;stylesheet&quot; href={this.props.selectedThermaId === 0?&quot;css/bootstrap.min.css&quot;:&quot;css/dark.bootstrap.min.css&quot;} /&gt;
+        &lt;AppBar title=&quot;Inspect code viewer&quot; style={{height:&quot;64px&quot;}} iconElementRight={
+          &lt;SelectField
+            value={this.props.selectedThermaId}
+            onChange={(event:any, index:number, value:number)=&gt;this.props.actions.onChangedTherma(value)}
+            &gt;
+            &lt;MenuItem key=&quot;thermaLight&quot; value={0} primaryText=&quot;Light&quot; /&gt;
+            &lt;MenuItem key=&quot;thermaDark&quot; value={1} primaryText=&quot;Dark&quot; /&gt;
+            &lt;/SelectField&gt;
+        } /&gt;
+        &lt;Paper style={{height: (this.props.hostHeight - 24-64) + &quot;px&quot;, overflow:&quot;hidden&quot;}}&gt;
+        &lt;div style={{float: &quot;left&quot;, width: &quot;40%&quot;, height: &quot;100%&quot;}}&gt;
+          &lt;SelectField
+            floatingLabelText=&quot;Diff Base Rev&quot;
+            value={this.props.selectedDiffBaseRevision.id}
+            onChange={(event:any, index:number, value:string)=&gt;this.props.actions.onChangedDiffBaseRevision(index)}
+            fullWidth
+            style={{height:&quot;72px&quot;}}&gt;
+          {this.props.revisions.revisionInfos.map(revision=&gt;{
+            return (&lt;MenuItem 
+              key={&quot;Revision_&quot; + revision.id}
+              value={revision.id} 
+              primaryText={revision.caption} 
+              rightAvatar={&lt;Badge badgeContent={revision.issueCount} primary={true}/&gt;} /&gt;)
+          })}
+          &lt;/SelectField&gt;
+          &lt;SelectField
+            floatingLabelText=&quot;Revisions&quot;
+            value={this.props.selectedRevision.id}
+            onChange={(event:any, index:number, value:string)=&gt;this.props.actions.onChangedRevision(index)}
+            fullWidth
+            style={{height:&quot;72px&quot;}}&gt;
+          {this.props.revisions.revisionInfos.map(revision=&gt;{
+            return (&lt;MenuItem 
+              key={&quot;Revision_&quot; + revision.id}
+              value={revision.id} 
+              primaryText={revision.caption} 
+              rightAvatar={&lt;Badge badgeContent={revision.issueCount} primary={true}/&gt;} /&gt;)
+          })}
+          &lt;/SelectField&gt;
+          &lt;SelectField
+            floatingLabelText=&quot;Issues Group By&quot;
+            value={this.props.issuesGroupBy}
+            onChange={(event:any, index:number, value:number)=&gt;this.props.actions.onChangeIssuesGroupBy(value)}
+            style={{height:&quot;72px&quot;}}
+          &gt;
+            &lt;MenuItem value={1} primaryText=&quot;Directory and File&quot; /&gt;
+            &lt;MenuItem value={2} primaryText=&quot;Issue Type&quot; /&gt;
+            &lt;MenuItem value={3} primaryText=&quot;Issue Category&quot; /&gt;
+          &lt;/SelectField&gt;
+          &lt;div style={{height:(this.props.hostHeight - 24-64-72-72) + &quot;px&quot;}}&gt;
+            {this.createIssueTreeElement(this.props.tree)}
+          &lt;/div&gt;
+          &lt;/div&gt;
+        &lt;div style={{float: &quot;none&quot;, width: &quot;auto&quot;, marginLeft: &quot;40%&quot;,height:`${this.props.hostHeight - 64}px`}}&gt;
+          &lt;Iframe url={this.getCodePageUri()}
+            width=&quot;100%&quot;
+            height=&quot;70%&quot;
+            display=&quot;initial&quot;
+            position=&quot;relative&quot;
+            allowFullScreen /&gt;
+          &lt;Paper height=&quot;200px&quot; style={{float: &quot;bottom&quot;}} &gt;
+            Id:{this.props.selectedIssue.id}&lt;br/&gt;
+            Message:{this.props.selectedIssue.message}&lt;br/&gt;
+            Project:{this.props.selectedIssue.project}&lt;br/&gt;
+            File:{this.props.selectedIssue.file}&lt;br/&gt;
+            Line:{this.props.selectedIssue.line}&lt;br/&gt;
+            Column:{this.props.selectedIssue.column}&lt;br/&gt;
+            Url:&lt;a target=&quot;_blank&quot; href={this.props.selectedIssueType.wikiUrl}&gt;{this.props.selectedIssueType.wikiUrl}&lt;/a&gt;&lt;br/&gt;
+          &lt;/Paper&gt;
+        &lt;/div&gt;
+        &lt;/Paper&gt;
+      &lt;/div&gt;
+    &lt;/MuiThemeProvider&gt;
+    );
+  }
+}
+
+export default App;
+
+</pre>
+  <script type="text/javascript" src="../../../js/code.js">
+  </script>
+</body>
+</html>

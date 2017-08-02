@@ -1,0 +1,595 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Code Viewer</title>
+  <link id="codestyle" rel="stylesheet" type="text/css" href="../../../css/theme.css" media="all" />
+  <script type="text/javascript" src="../../../js/syntaxhighlighter.js"></script>
+  <style>
+    .syntaxhighlighter {
+      overflow-y: hidden !important;
+    }
+  </style>
+</head>
+<body>
+<pre id="code" class="brush: csharp">import * as objectAssign from &apos;object-assign&apos;;
+import {IssueGroupByTypes, IIssue, IIssueType, IOriginalData, IRevisionInfo, IInspectResultsSummary} from &quot;./CommonData&quot;
+
+export interface IIssueBrowserState{
+  issuesGroupBy?:IssueGroupByTypes;
+  selectedIssueId?:string;
+  selectedIssue? : IIssue;
+  selectedIssueType?: IIssueType;
+  tree?: IGroup;
+  originalData?: IOriginalData,
+  currentData?: IOriginalData,
+  diffBaseData?: IOriginalData,
+  selectedRevision?: IRevisionInfo;
+  selectedDiffBaseRevision: IRevisionInfo;
+  revisions?:IInspectResultsSummary;
+  selectedThermaId?:number;
+  diffMode?:number;
+  showErrorIssues?:boolean;
+  showWarningIssues?:boolean;
+  showSuggestionIssues?:boolean;
+  showHintIssues?:boolean;
+}
+
+export enum IssueIconType
+{
+  none,
+  error,
+  warning,
+  suggestion,
+  hint,
+}
+export interface IGroup{
+  id:string;
+  name:string;
+  subGroups:IGroup[];
+  items:IItem[];
+  isOpen:boolean;
+  badge:string;
+  expandedChildren:string[];
+  icon:IssueIconType;
+}
+export interface IItem{
+  id:string;
+  name:string;
+  badge:string;
+  icon:IssueIconType;
+}
+
+
+
+export class IssueBrowserActionDispatcher
+{
+  dispatch: (action:any)=&gt;any;
+  getState: ()=&gt;IIssueBrowserState;
+  myAjax: (url:string, callback: (data:any)=&gt;void)=&gt;void;
+  constructor(dispatch:(action:any)=&gt;any, getState: ()=&gt;IIssueBrowserState, myAjax: (url:string, callback: (data:any)=&gt;void)=&gt;void)
+  {
+    this.dispatch = dispatch;
+    this.getState = getState;
+    this.myAjax = myAjax;
+  }
+  getInitialData(): void{
+    this.myAjax(&quot;./revisions/summary.js&quot;, (revisions:IInspectResultsSummary)=&gt;{
+      this.dispatch( {type:&quot;receivedInitialData&quot;, revisions: revisions});
+    });
+  }
+  onChangeIssuesGroupBy(value:number):void {
+    this.dispatch( {type:&quot;onChangeIssuesGroupBy&quot;, value:value});
+  }
+  onSelectedIssueId(value:string):void {
+    this.dispatch( {type:&quot;onSelectedIssueId&quot;, value:value});
+  }
+  onSelectedIssue(id:string):void{
+    this.dispatch({type:&quot;onSelectedIssue&quot;, id:id});
+  }
+  onTouchTapListGroup(selectedGroup:IGroup):void{
+    this.dispatch( {type:&quot;onTouchTapListGroup&quot;, selectedGroup:selectedGroup});
+  }
+  onChangedRevision(index:number):void{
+    this.dispatch({type:&quot;onChangedRevision&quot;, index:index});
+    
+    var selectedRevision = this.getState().revisions.revisionInfos[index];
+
+    this.myAjax(`./revisions/${selectedRevision.id}/data.js`, (data:IOriginalData)=&gt;{
+      this.dispatch( {type:&quot;revievedRevisionData&quot;, data:data});
+    }); 
+  }
+
+  onChangedDiffBaseRevision(index:number):void{
+    this.dispatch({type:&quot;onChangedDiffBaseRevision&quot;, index:index});
+
+    var selectedRevision = this.getState().revisions.revisionInfos[index];
+
+    this.myAjax(`./revisions/${selectedRevision.id}/data.js`, (data:IOriginalData)=&gt;{
+      this.dispatch( {type:&quot;revievedDiffBaseRevisionData&quot;, data:data});
+    });
+  }
+  onChangedTherma(value:number):void{
+    this.dispatch( {type:&quot;onChangedTherma&quot;, value:value});
+  }
+  nSelectedIssue(row:IItem):void{
+    this.dispatch( {type:&quot;onSelectedIssue&quot;, row:row});
+  }
+  onSelectedIssueGroup(parent:IGroup, row:any):void{
+    this.dispatch( {type:&quot;onSelectedIssueGroup&quot;, parent:parent, row:row});
+  }
+  onChangeDiffMode(value:number):void{
+    this.dispatch({type:&quot;onChangeDiffMode&quot;, value:value});
+  }
+  onToggleShowErrorIssues():void{
+    this.dispatch({type:&apos;onToggleShowErrorIssues&apos;});
+  }
+  onToggleShowWarningIssues():void{
+    this.dispatch({type:&apos;onToggleShowWarningIssues&apos;});
+  }
+  onToggleShowSuggestionIssues():void{
+    this.dispatch({type:&apos;onToggleShowSuggestionIssues&apos;});
+  }
+  onToggleShowHintIssues():void{
+    this.dispatch({type:&apos;onToggleShowHintIssues&apos;});
+  }
+}
+
+
+
+
+
+const initialIssueBrowserState: IIssueBrowserState = {
+  issuesGroupBy:IssueGroupByTypes.IssueType, 
+  selectedIssue:{
+    id:&quot;&quot;,
+    file:&quot;&quot;,
+    line:&quot;0&quot;,
+    message:&quot;&quot;,
+    offset:&quot;0&quot;,
+    project:&quot;&quot;,
+    typeId:&quot;&quot;,
+    column:0
+  }, 
+  selectedIssueType:{
+    id:&quot;&quot;,
+    category:&quot;&quot;,
+    categoryId:&quot;&quot;,
+    description:&quot;&quot;,
+    severity:&quot;&quot;,
+    wikiUrl:&quot;&quot;
+  },
+  originalData:{
+    issues:[],
+    issueTypes:[]
+  },
+  currentData:{
+    issues:[],
+    issueTypes:[]
+  },
+  diffBaseData:{
+    issues:[],
+    issueTypes:[]
+  },
+  tree: createTree([], [], [], IssueGroupByTypes.IssueType, true,true,true,true),
+  revisions:{
+    revisionInfos:[]
+  },
+  selectedRevision:{
+    id:&quot;&quot;,
+    issueCount:0,
+    caption:&quot;&quot;
+  },
+  selectedDiffBaseRevision:{
+    id:&quot;&quot;,
+    issueCount:0,
+    caption:&quot;&quot;
+  },
+  diffMode:0,
+  showErrorIssues:true,
+  showWarningIssues:true,
+  showSuggestionIssues:true,
+  showHintIssues:true
+};
+
+
+function toIconType(severity:string):IssueIconType
+{
+  if(severity === &quot;ERROR&quot;)
+  {
+    return IssueIconType.error;
+  }
+  if(severity === &quot;WARNING&quot;)
+  {
+    return IssueIconType.warning;
+  }
+  if(severity === &quot;SUGGESTION&quot;)
+  {
+    return IssueIconType.suggestion;
+  }
+  if(severity === &quot;HINT&quot;)
+  {
+    return IssueIconType.hint;
+  }
+  return IssueIconType.none;
+}
+
+function createTree(
+  issues:IIssue[], 
+  diffBaseIssues:IIssue[], 
+  issueTypes:IIssueType[], 
+  issueGroupBy:IssueGroupByTypes,
+  showErrorIssues:boolean,
+  showWarningIssues:boolean,
+  showSuggestionIssues:boolean,
+  showHintIssues:boolean): IGroup
+  {
+
+  let targetIssues:IIssue[] = issues.filter(issue=&gt;{
+    return !diffBaseIssues.some((value) =&gt; value.id === issue.id);
+  })
+  let filteredIssueTypes = issueTypes;
+  if(showErrorIssues === false)
+  {
+    filteredIssueTypes = filteredIssueTypes.filter(issueType=&gt;issueType.severity !== &quot;ERROR&quot;);
+  }
+  if(showWarningIssues === false)
+  {
+    filteredIssueTypes = filteredIssueTypes.filter(issueType=&gt;issueType.severity !== &quot;WARNING&quot;);
+  }
+  if(showSuggestionIssues === false)
+  {
+    filteredIssueTypes = filteredIssueTypes.filter(issueType=&gt;issueType.severity !== &quot;SUGGESTION&quot;);
+  }
+  if(showHintIssues === false)
+  {
+    filteredIssueTypes = filteredIssueTypes.filter(issueType=&gt;issueType.severity !== &quot;HINT&quot;);
+  }
+  targetIssues = targetIssues.filter(issue=&gt;filteredIssueTypes.some(issueType=&gt;issueType.id === issue.typeId));
+
+  if(issueGroupBy === IssueGroupByTypes.IssueType)
+  {
+    var dic : {[key:string]:IIssue[]} = {};
+    targetIssues.map(issue=&gt;{
+      if(!(issue.typeId in dic))
+      {
+        dic[issue.typeId] = [];
+      }
+      dic[issue.typeId] = dic[issue.typeId].concat([issue]);
+    });
+
+    var sortedList = Object.keys(dic).map(_=&gt;dic[_]).sort((a,b)=&gt;{
+      if(a.length&gt;b.length){return -1;}
+      if(a.length&lt;b.length){return 1;}
+      return 0;
+    })
+
+    var result :IGroup[] = [];
+    for(var issuesGroup of sortedList){
+      var issueTypeId = issuesGroup[0].typeId;
+      var issueType = issueTypes.filter(issueType=&gt;issueType.id === issueTypeId)[0];
+      var group:IGroup = {
+        id: issueTypeId,
+        isOpen: false,
+        name: issueType.description,
+        items: issuesGroup.map(issue=&gt;{return {
+          id: &quot;ISSUE_&quot; + issue.id,
+          name: `${issue.file}:${issue.line}`,
+          badge: &quot;&quot;,
+          icon: toIconType(issueType.severity)
+        }; }),
+        subGroups:[],
+        badge: issuesGroup.length.toString(),
+        expandedChildren:[],
+        icon: toIconType(issueType.severity)
+      };
+      result = result.concat([group]);
+    }
+    return {
+      id: &quot;&quot;,
+      name: &quot;&quot;,
+      isOpen: true,
+      subGroups: result,
+      items:[],
+      badge:&quot;&quot;,
+      expandedChildren:[],
+      icon:IssueIconType.none
+    };
+  }
+  else if(issueGroupBy === IssueGroupByTypes.ProjectAndFile)
+  {
+    //Group by Project
+    var dic : {[key:string]:IIssue[]} = {};
+    targetIssues.map(issue=&gt;{
+      if(!(issue.project in dic))
+      {
+        dic[issue.project] = [];
+      }
+      dic[issue.project] = dic[issue.project].concat([issue]);
+    });
+    //Group by file
+    var dic2 : {[key:string]:{[key:string]:IIssue[]}} = {}
+    Object.keys(dic).map(project=&gt;{
+      var dicTemp : {[key:string]:IIssue[]} = {}
+      dic[project].map(issue=&gt;{
+        if(!(issue.file in dicTemp))
+        {
+          dicTemp[issue.file] = [];
+        }
+        dicTemp[issue.file] = dicTemp[issue.file].concat([issue]);
+      })
+      dic2[project] = dicTemp;
+    })
+    console.log(dic2);
+
+    var list = Object.keys(dic2).map(project=&gt;{
+      var issuesGroupbyFile:{[key:string]:IIssue[]} = dic2[project];
+      var issueSum:number = 0;
+      return {
+        id: project,
+        isOpen: false,
+        name: project,
+        items: [],
+        subGroups: Object.keys(issuesGroupbyFile).map(file=&gt;{
+          issueSum += issuesGroupbyFile[file].length;
+          return {
+            id: file,
+            isOpen: false,
+            name: file,
+            items: issuesGroupbyFile[file].map(issue=&gt;{
+              var issueType = issueTypes.filter(issueType=&gt;issueType.id === issue.typeId)[0];
+              return {
+                id: &quot;ISSUE_&quot; + issue.id,
+                name: `${issue.message}`,
+                badge: &quot;&quot;,
+                icon:toIconType(issueType.severity)
+              }
+            }),
+            subGroups:[],
+            badge: issuesGroupbyFile[file].length.toString(),
+            expandedChildren:[],
+            icon:IssueIconType.none
+          };
+        }),
+        badge: issueSum.toString(),
+        expandedChildren:[],
+        icon:IssueIconType.none
+      };
+    });
+    return {
+      id: &quot;&quot;,
+      name: &quot;&quot;,
+      isOpen: true,
+      subGroups: list,
+      items:[],
+      badge:&quot;&quot;,
+      expandedChildren:[],
+      icon:IssueIconType.none
+    };
+  }
+}
+
+function searchGroup(tree:IGroup, id:string):IGroup
+{
+  if(tree.id === id){
+    return tree;
+  }
+  var results = tree.subGroups
+    .map(group =&gt; searchGroup(group, id))
+    .filter(group =&gt; group !== null);
+  if(results.length != 0)
+  {
+    return results[0]
+  }
+  return null;
+}
+
+function updateGroups(tree:IGroup, updateTarget:IGroup):IGroup
+{
+  if(tree.id === updateTarget.id){
+    return updateTarget;
+  }
+  var isUpdated:boolean = false;
+  var newSubGroups = tree.subGroups.map(group=&gt;{
+    var newGroup = updateGroups(group, updateTarget);
+    if(newGroup !== null){
+      isUpdated = true;
+      return newGroup;
+    }
+    else
+    {
+      return group;
+    }
+  });
+  if(isUpdated)
+  {
+    return {
+      id: tree.id,
+      isOpen: tree.isOpen,
+      items: tree.items,
+      name: tree.name,
+      subGroups:newSubGroups,
+      badge: tree.badge,
+      expandedChildren:tree.expandedChildren,
+      icon:tree.icon
+    }
+  }
+  else{
+    return null;
+  }
+}
+
+export function IssueBrowserReducer(state: IIssueBrowserState = initialIssueBrowserState, action: any) {
+  switch (action.type) 
+  {
+  case &apos;receivedInitialData&apos;:
+    return objectAssign({}, state, {revisions:action.revisions});
+  case &apos;onChangeIssuesGroupBy&apos;:
+    var newtree = createTree(
+      state.currentData.issues, 
+      state.diffBaseData.issues, 
+      state.currentData.issueTypes, 
+      action.value,
+      state.showErrorIssues,
+      state.showWarningIssues,
+      state.showSuggestionIssues,
+      state.showHintIssues
+      );
+    return objectAssign({}, state, {issuesGroupBy:action.value, tree:newtree});
+  case &apos;onSelectedIssueId&apos;:
+    if(action.value.match(/^ISSUE_/) !== null)
+    {
+      // クリックされたのがissueなら選択する
+      var id = action.value.replace(&quot;ISSUE_&quot;, &quot;&quot;);
+      var selectedIssue = state.currentData.issues.filter(issue=&gt;issue.id === id)[0];
+      var selectedIssueType = state.currentData.issueTypes.filter(issueType=&gt;issueType.id == selectedIssue.typeId)[0];
+      
+      return objectAssign({}, state, {selectedIssueId:action.value, selectedIssue: selectedIssue, selectedIssueType:selectedIssueType});
+    }
+    else
+    {
+      return state;
+    }
+
+  case &apos;onTouchTapListGroup&apos;:
+    var newSelectedGroup = objectAssign({}, action.selectedGroup, {isOpen:!action.selectedGroup.isOpen});
+    var newTree = updateGroups(state.tree, newSelectedGroup);
+    return objectAssign({}, state, {tree: newTree});
+
+  case &apos;onChangedRevision&apos;:
+    var selectedRevision = state.revisions.revisionInfos[action.index];
+
+    return objectAssign({}, state, {selectedRevision:selectedRevision});
+  case &apos;revievedRevisionData&apos;:
+    var data:IOriginalData = action.data;
+    var tree = createTree(
+      data.issues, 
+      state.diffBaseData.issues,
+      data.issueTypes, 
+      state.issuesGroupBy,
+      state.showErrorIssues,
+      state.showWarningIssues,
+      state.showSuggestionIssues,
+      state.showHintIssues);
+
+    tree.expandedChildren = [tree.subGroups[0].id]
+    
+    return objectAssign({}, state, {
+      selectedIssue:data.issues[0], 
+      selectedIssueType:data.issueTypes.filter(_=&gt;_.id === data.issues[0].typeId)[0],
+      originalData:data,
+      currentData:data,
+      tree: tree
+    });
+  case &apos;onChangedDiffBaseRevision&apos;:
+    var selectedRevision = state.revisions.revisionInfos[action.index];
+
+    return objectAssign({}, state, {selectedDiffBaseRevision:selectedRevision});
+
+  case &apos;revievedDiffBaseRevisionData&apos;:
+    var diffBaseData:IOriginalData = action.data;
+    var tree = createTree(
+      state.currentData.issues, 
+      diffBaseData.issues,
+      state.currentData.issueTypes, 
+      state.issuesGroupBy,
+      state.showErrorIssues,
+      state.showWarningIssues,
+      state.showSuggestionIssues,
+      state.showHintIssues);
+
+    return objectAssign({}, state, {
+      diffBaseData:diffBaseData,
+      tree: tree
+    });
+  case &apos;onChangedTherma&apos;:
+    localStorage[&quot;InspectCodeViewer.themaId&quot;] = action.value;
+    return objectAssign({}, state,{selectedThermaId:action.value});
+
+  case &apos;onSelectedIssue&apos;:
+    var id = action.id.toString();
+
+    if(id.match(/^ISSUE_/) !== null)
+    {
+      // クリックされたのがissueなら選択する
+      id = id.replace(&quot;ISSUE_&quot;, &quot;&quot;);
+      var selectedIssue = state.currentData.issues.filter(issue=&gt;issue.id === id)[0];
+      var selectedIssueType = state.currentData.issueTypes.filter(issueType=&gt;issueType.id == selectedIssue.typeId)[0];
+      
+      return objectAssign({}, state, {selectedIssueId:action.id, selectedIssue: selectedIssue, selectedIssueType:selectedIssueType});
+    }
+    else
+    {
+      return state;
+    }
+
+  case &apos;onSelectedIssueGroup&apos;:
+    var selectedGroup:IGroup = action.row;
+    var newExpandedChildren:string[] = [selectedGroup.id];
+
+    if(action.parent.expandedChildren[0] === selectedGroup.id)
+    {
+      return state;
+    }
+
+    var newParent = objectAssign({}, action.parent,{expandedChildren:newExpandedChildren});
+    var newTree = updateGroups(state.tree, newParent);
+    return objectAssign({}, state, {tree:newTree});
+  case &apos;onChangeDiffMode&apos;:
+    return objectAssign({}, state,{diffMode:action.value});
+  case &apos;onToggleShowErrorIssues&apos;:
+    var tree = createTree(
+      state.currentData.issues, 
+      state.diffBaseData.issues,
+      state.currentData.issueTypes, 
+      state.issuesGroupBy,
+      !state.showErrorIssues,
+      state.showWarningIssues,
+      state.showSuggestionIssues,
+      state.showHintIssues);
+    return objectAssign({}, state,{showErrorIssues:!state.showErrorIssues, tree:tree});
+  case &apos;onToggleShowWarningIssues&apos;:
+    var tree = createTree(
+      state.currentData.issues, 
+      state.diffBaseData.issues,
+      state.currentData.issueTypes, 
+      state.issuesGroupBy,
+      state.showErrorIssues,
+      !state.showWarningIssues,
+      state.showSuggestionIssues,
+      state.showHintIssues);
+    return objectAssign({}, state,{showWarningIssues:!state.showWarningIssues, tree:tree});
+  case &apos;onToggleShowSuggestionIssues&apos;:
+    var tree = createTree(
+      state.currentData.issues, 
+      state.diffBaseData.issues,
+      state.currentData.issueTypes, 
+      state.issuesGroupBy,
+      state.showErrorIssues,
+      state.showWarningIssues,
+      !state.showSuggestionIssues,
+      state.showHintIssues);
+    return objectAssign({}, state,{showSuggestionIssues:!state.showSuggestionIssues, tree:tree});
+  case &apos;onToggleShowHintIssues&apos;:
+    var tree = createTree(
+      state.currentData.issues, 
+      state.diffBaseData.issues,
+      state.currentData.issueTypes, 
+      state.issuesGroupBy,
+      state.showErrorIssues,
+      state.showWarningIssues,
+      state.showSuggestionIssues,
+      !state.showHintIssues);
+    return objectAssign({}, state,{showHintIssues:!state.showHintIssues, tree:tree});
+  default:
+    return state;
+  }
+}
+
+
+
+</pre>
+  <script type="text/javascript" src="../../../js/code.js">
+  </script>
+</body>
+</html>

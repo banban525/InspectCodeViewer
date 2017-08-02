@@ -1,0 +1,86 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Code Viewer</title>
+  <link id="codestyle" rel="stylesheet" type="text/css" href="../../../css/theme.css" media="all" />
+  <script type="text/javascript" src="../../../js/syntaxhighlighter.js"></script>
+  <style>
+    .syntaxhighlighter {
+      overflow-y: hidden !important;
+    }
+  </style>
+</head>
+<body>
+<pre id="code" class="brush: csharp">import * as React from &quot;react&quot;;
+import { Component, StatelessComponent } from &quot;react&quot;;
+import SelectField from &apos;material-ui/SelectField&apos;;
+import MenuItem from &apos;material-ui/MenuItem&apos;;
+import getMuiTheme from &quot;material-ui/styles/getMuiTheme&quot;;
+import MuiThemeProvider from &quot;material-ui/styles/MuiThemeProvider&quot;;
+import * as objectAssign from &apos;object-assign&apos;;
+import darkBaseTheme from &apos;material-ui/styles/baseThemes/darkBaseTheme&apos;;
+import lightBaseTheme from &apos;material-ui/styles/baseThemes/lightBaseTheme&apos;;
+import Paper from &apos;material-ui/Paper&apos;;
+import AppBar from &apos;material-ui/AppBar&apos;;
+import &quot;jquery&quot;;
+import {IAppState,AppActionDispatcher} from &apos;./AppReducer&apos;;
+import {RouteComponentProps} from &apos;react-router-dom&apos;;
+
+
+export interface IAppProps extends IAppState
+{
+  actions?:AppActionDispatcher;
+  children?:JSX.Element;
+}
+
+class App extends Component&lt;IAppProps&gt; {
+  resizeTimer: any= null;
+  interval = Math.floor(1000 / 60 * 10);
+
+  constructor(props: IAppProps) {
+    super(props);
+
+    console.log(props);
+    
+    window.addEventListener(&quot;resize&quot;, (): void =&gt; {
+      if (this.resizeTimer !== null) {
+        clearTimeout(this.resizeTimer as NodeJS.Timer);
+      }
+      this.resizeTimer = setTimeout(() =&gt; {
+        this.props.actions.onResized();
+      }, this.interval);
+    });
+  }
+
+
+  render() {
+    return (
+      &lt;MuiThemeProvider muiTheme={getMuiTheme(this.props.selectedThermaId===0?lightBaseTheme:darkBaseTheme)}&gt;
+        &lt;div&gt;
+        &lt;link rel=&quot;stylesheet&quot; href={this.props.selectedThermaId === 0?&quot;css/bootstrap.min.css&quot;:&quot;css/dark.bootstrap.min.css&quot;} /&gt;
+        &lt;AppBar title=&quot;Inspect code viewer&quot; style={{height:&quot;64px&quot;}} iconElementRight={
+          &lt;SelectField
+            value={this.props.selectedThermaId}
+            onChange={(event:any, index:number, value:number)=&gt;this.props.actions.onChangedThema(value)}
+            &gt;
+            &lt;MenuItem key=&quot;thermaLight&quot; value={0} primaryText=&quot;Light&quot; /&gt;
+            &lt;MenuItem key=&quot;thermaDark&quot; value={1} primaryText=&quot;Dark&quot; /&gt;
+            &lt;/SelectField&gt;
+        } /&gt;
+        &lt;Paper style={{height: (this.props.hostHeight - 24-64) + &quot;px&quot;, overflow:&quot;hidden&quot;}}&gt;
+          {this.props.children}
+        &lt;/Paper&gt;
+      &lt;/div&gt;
+    &lt;/MuiThemeProvider&gt;
+    );
+  }
+}
+
+export default App;
+
+</pre>
+  <script type="text/javascript" src="../../../js/code.js">
+  </script>
+</body>
+</html>

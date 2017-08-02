@@ -1,0 +1,71 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Code Viewer</title>
+  <link id="codestyle" rel="stylesheet" type="text/css" href="../../../css/theme.css" media="all" />
+  <script type="text/javascript" src="../../../js/syntaxhighlighter.js"></script>
+  <style>
+    .syntaxhighlighter {
+      overflow-y: hidden !important;
+    }
+  </style>
+</head>
+<body>
+<pre id="code" class="brush: csharp">import * as React from &apos;react&apos;;
+import *  as ReactDOM from &quot;react-dom&quot;;
+import { createStore, combineReducers,compose,applyMiddleware  } from &quot;redux&quot;;
+import { Provider,connect } from &quot;react-redux&quot;;
+
+import App from &quot;./App&quot;;
+import {AppReducer, AppActionDispatcher,IAppState} from &quot;./AppReducer&quot;
+
+
+const rootReducer = combineReducers({ AppReducer });
+const store = createStore(rootReducer);
+
+store.subscribe(() =&gt; console.log(store.getState()));
+
+
+
+function mapStateToProps(state : any) {
+  return state.AppReducer;
+}
+
+declare var __data: any;
+function myAjax(url:string, onRecieved:(data:any)=&gt;void):void {
+    var s = document.createElement(&quot;script&quot;);
+    s.src = url;
+    s.onload = () =&gt; {
+      onRecieved(__data);
+    }
+
+    var ele = document.getElementById(&quot;script&quot;);
+    ele.appendChild(s);
+}
+
+function mapDispatchToProps(dispatch: any) {
+  return {
+    actions:new AppActionDispatcher(dispatch, ()=&gt;(store.getState() as any).AppReducer as IAppState, myAjax)
+  }
+}
+
+
+
+var AppComponent = connect(
+  mapStateToProps,
+  mapDispatchToProps)(App);
+
+
+ReactDOM.render(
+    &lt;Provider store={store}&gt;
+    &lt;AppComponent /&gt;
+    &lt;/Provider&gt;
+    ,document.getElementById(&quot;app&quot;)
+);
+
+</pre>
+  <script type="text/javascript" src="../../../js/code.js">
+  </script>
+</body>
+</html>

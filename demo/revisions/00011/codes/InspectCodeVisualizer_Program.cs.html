@@ -1,0 +1,448 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Code Viewer</title>
+  <link id="codestyle" rel="stylesheet" type="text/css" href="../../../css/theme.css" media="all" />
+  <script type="text/javascript" src="../../../js/syntaxhighlighter.js"></script>
+  <style>
+    .syntaxhighlighter {
+      overflow-y: hidden !important;
+    }
+  </style>
+</head>
+<body>
+<pre id="code" class="brush: csharp">using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Json;
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading;
+using System.Xml;
+using System.Xml.Serialization;
+
+namespace InspectCodeVisualizer
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            //var inputFile = args[0];
+            var inputFile = @&quot;C:\work\InspectCodeVisualizer\inspectCodeResult.xml&quot;;
+            var programBaseDir = @&quot;C:\work\NoahsArk\Source&quot;;
+            var inspectId = Guid.NewGuid().ToString(&quot;N&quot;);
+            var lastWriteTime = new FileInfo(inputFile).LastWriteTime;
+            var caption = $&quot;{lastWriteTime:yyyy-MM-dd}({inspectId.Substring(0, 8)})&quot;;
+            var outputBaseDir = @&quot;C:\work\InspectCodeVisualizer\bin\revisions&quot;;
+
+            Report report;
+            using (var fileStream = new FileStream(inputFile, FileMode.Open))
+            {
+                var reportSerializer = new XmlSerializer(typeof(Report));
+                report = (Report) reportSerializer.Deserialize(fileStream);
+            }
+
+            var filePaths = report.Issues.SelectMany(_ =&gt; _.Issue).GroupBy(_ =&gt; _.File).Select(_ =&gt; _.Key).ToArray();
+
+            var issues = report.Issues
+                .SelectMany(_ =&gt; _.Issue.Select(issue =&gt; new {issue, Project = _.Name}))
+                .Select(_ =&gt; new Issue(&quot;&quot;, _.issue.TypeId, _.issue.File, _.issue.Offset, _.issue.Message, _.issue.Line, _.Project, 0))
+                .Select(_ =&gt; new Issue(_.Id, _.TypeId, _.File, _.Offset, _.Message, _.Line, _.Project, GetColumnNo(_, programBaseDir)))
+                .Select(_ =&gt; new Issue(CreateId(_, programBaseDir), _.TypeId, _.File, _.Offset, _.Message, _.Line, _.Project, _.Column))
+                .ToArray();
+
+            issues.ToList().ForEach(_=&gt; GetColumnNo(_, programBaseDir));
+            var issueTypes = report.IssueTypes
+                .Select(_ =&gt; new IssueType(_.Id, _.Category, _.CategoryId, _.Description, _.Severity, _.WikiUrl,
+                    _.SubCategory))
+                .ToArray();
+
+
+            var inspectResults = new InspectResults(issues, issueTypes, new RevisionInfo(
+                inspectId,
+                caption,
+                lastWriteTime.ToString(&quot;s&quot;),
+                issues.Length
+                ));
+
+
+            // Prepare output directories.
+            var outputDir = Path.Combine(outputBaseDir, inspectId);
+            var dataFilePath = Path.Combine(outputDir, &quot;data.js&quot;);
+            var summaryFilePath = Path.Combine(outputBaseDir, &quot;summary.js&quot;);
+            var codeDir = Path.Combine(outputDir, &quot;codes&quot;);
+            {
+                if (Directory.Exists(outputDir))
+                {
+                    Directory.Delete(outputDir, true);
+                    while (Directory.Exists(outputDir))
+                    {
+                        Thread.Sleep(1);
+                    }
+                }
+                Directory.CreateDirectory(outputDir);
+                while (Directory.Exists(outputDir) == false)
+                {
+                    Thread.Sleep(1);
+                }
+                if (Directory.Exists(codeDir))
+                {
+                    Directory.Delete(codeDir, true);
+                    while (Directory.Exists(codeDir))
+                    {
+                        Thread.Sleep(1);
+                    }
+                }
+                Directory.CreateDirectory(codeDir);
+                while (Directory.Exists(codeDir) == false)
+                {
+                    Thread.Sleep(1);
+                }
+            }
+
+            // Output issues json data.
+            {
+                var jsonContent = InspectResults.Serialize(inspectResults);
+                var temP = InspectResults.Deserialize(jsonContent);
+                File.WriteAllText(dataFilePath, &quot;var __data = \r\n&quot; + jsonContent, Encoding.UTF8);
+            }
+
+            // Output source code html
+            {
+                var template = &quot;&quot;;
+                using (var stream = Assembly.GetExecutingAssembly()
+                    .GetManifestResourceStream(&quot;InspectCodeVisualizer.template.html&quot;))
+                {
+                    template = new StreamReader(stream).ReadToEnd();
+                }
+
+                foreach (var filePath in filePaths)
+                {
+                    var absoleteFilePath = Path.Combine(programBaseDir, filePath);
+                    if (File.Exists(absoleteFilePath) == false)
+                    {
+                        continue;
+                    }
+                    var content = File.ReadAllText(absoleteFilePath, Encoding.UTF8);
+                    var htmlFileName = filePath.Replace(&quot;\\&quot;, &quot;_&quot;) + &quot;.html&quot;;
+                    var htmlFilePath = Path.Combine(codeDir, htmlFileName);
+
+                    var htmlContent = template.Replace(&quot;@CODE@&quot;, content);
+                    File.WriteAllText(htmlFilePath, htmlContent, Encoding.UTF8);
+                }
+            }
+
+            // Update summary json
+            {
+                var list = new List&lt;RevisionInfo&gt;();
+                var directories = Directory.GetDirectories(outputBaseDir, &quot;*&quot;, SearchOption.TopDirectoryOnly);
+                foreach (var directory in directories)
+                {
+                    var dataJsFilePath = Path.Combine(directory, &quot;data.js&quot;);
+                    if (File.Exists(dataJsFilePath) == false)
+                    {
+                        continue;
+                    }
+                    InspectResults inspcResults;
+                    using (var reader = new StreamReader(dataJsFilePath, Encoding.UTF8))
+                    {
+                        reader.ReadLine();  //ignore first line.
+                        var json = reader.ReadToEnd();
+                        inspcResults = InspectResults.Deserialize(json);
+                    }
+                    list.Add(inspcResults.MetaInfo);
+                }
+                var summary = new InspectResultsSummary(list.ToArray());
+                var summaryJson = InspectResultsSummary.Serialize(summary);
+                File.WriteAllText(summaryFilePath, &quot;var __data = \r\n&quot; + summaryJson, Encoding.UTF8);
+            }
+        }
+
+        static string CreateId(Issue issue, string baseDir)
+        {
+            var fullPath = Path.Combine(baseDir, issue.File);
+            var lines = new string[0];
+            if (File.Exists(fullPath))
+            {
+                lines = File.ReadAllLines(fullPath);
+            }
+
+            var content = &quot;&quot;;
+            for (int i = issue.Line - 5; i &lt;= issue.Line + 5; i++)
+            {
+                if (i &lt; 0 || lines.Length &lt;= i)
+                {
+                    continue;
+                }
+                if (string.IsNullOrEmpty(content) == false)
+                {
+                    content += Environment.NewLine;
+                }
+                content += lines[i];
+            }
+
+            var issueForHash = new IssueForHash(issue.TypeId, issue.File, issue.Column, issue.Message, content);
+            var serializer = new DataContractJsonSerializer(typeof(IssueForHash));
+            var stringWriter = new StringWriter();
+
+            serializer.WriteObject(new XmlTextWriter(stringWriter), issueForHash);
+            return GetMD5HashString(stringWriter.ToString());
+        }
+
+        public static int GetColumnNo(Issue issue, string baseDir)
+        {
+            var splitedOffset = issue.Offset.Split(&apos;-&apos;);
+            var offsetStart = Convert.ToInt32(splitedOffset.First());
+
+            var fullPath = Path.Combine(baseDir, issue.File);
+            var content = &quot;&quot;;
+            if (File.Exists(fullPath))
+            {
+                content = File.ReadAllText(fullPath);
+            }
+            var lastLfOffset = content.LastIndexOf(&quot;\n&quot;, offsetStart);
+            var lineOffset = offsetStart - (lastLfOffset + 1);
+            
+            return lineOffset;
+        }
+
+        public static string GetMD5HashString(string text)
+        {
+            // 文字列をバイト型配列に変換する
+            byte[] data = Encoding.UTF8.GetBytes(text);
+
+            // MD5ハッシュアルゴリズム生成
+            var algorithm = new MD5CryptoServiceProvider();
+
+            // ハッシュ値を計算する
+            byte[] bs = algorithm.ComputeHash(data);
+
+            // リソースを解放する
+            algorithm.Clear();
+
+            // バイト型配列を16進数文字列に変換
+            var result = new StringBuilder();
+            foreach (byte b in bs)
+            {
+                result.Append(b.ToString(&quot;X2&quot;));
+            }
+            return result.ToString();
+        }
+    }
+
+    [DataContract]
+    class IssueForHash
+    {
+        public IssueForHash(string typeId, string file, int column, string message, string sourceCodeFragment)
+        {
+            TypeId = typeId;
+            File = file;
+            Column = column;
+            Message = message;
+            SourceCodeFragment = sourceCodeFragment;
+        }
+
+        [DataMember(Name = &quot;typeId&quot;, Order = 1)]
+        public string TypeId { get; private set; }
+
+        [DataMember(Name = &quot;file&quot;, Order = 2)]
+        public string File { get; private set; }
+
+        [DataMember(Name = &quot;column&quot;, Order = 3)]
+        public int Column { get; private set; }
+
+        [DataMember(Name = &quot;message&quot;, Order = 4)]
+        public string Message { get; private set; }
+
+        [DataMember(Name = &quot;sourceCodeFragment&quot;, Order = 5)]
+        public string SourceCodeFragment { get; private set; }
+    }
+
+
+    [DataContract]
+    class InspectResults
+    {
+        public InspectResults(Issue[] issues, IssueType[] issueTypess, RevisionInfo metaInfo)
+        {
+            Issues = issues;
+            IssueTypess = issueTypess;
+            MetaInfo = metaInfo;
+        }
+
+        [DataMember(Name = &quot;issues&quot;, Order = 1)]
+        public Issue[] Issues { get; private set; }
+
+        [DataMember(Name = &quot;issueTypes&quot;, Order = 2)]
+        public IssueType[] IssueTypess { get; private set; }
+
+        [DataMember(Name = &quot;metaInfo&quot;, Order = 3)]
+        public RevisionInfo MetaInfo { get; private set; }
+
+        public static InspectResults Deserialize(string text)
+        {
+            var serializer = new DataContractJsonSerializer(typeof(InspectResults));
+            var memoryStream = new MemoryStream();
+            var writer = new StreamWriter(memoryStream, Encoding.Default);
+            writer.Write(text);
+            writer.Flush();
+
+            memoryStream.Position = 0;
+            var value = (InspectResults)serializer.ReadObject(memoryStream);
+            return value;
+        }
+
+        public static string Serialize(InspectResults value)
+        {
+            var serializer = new DataContractJsonSerializer(typeof(InspectResults));
+            var memoryStream = new MemoryStream();
+            serializer.WriteObject(memoryStream, value);
+            memoryStream.Position = 0;
+            var jsonContent = new StreamReader(memoryStream, Encoding.Default).ReadToEnd();
+            return jsonContent;
+        }
+    }
+
+    [DataContract]
+    class InspectResultsSummary
+    {
+        public InspectResultsSummary(RevisionInfo[] revisionInfos)
+        {
+            RevisionInfos = revisionInfos;
+        }
+
+        [DataMember(Name= &quot;revisionInfos&quot;, Order = 1)]
+        public RevisionInfo[] RevisionInfos { get; set; }
+
+        public static InspectResultsSummary Deserialize(string text)
+        {
+            var serializer = new DataContractJsonSerializer(typeof(InspectResultsSummary));
+            var memoryStream = new MemoryStream();
+            var writer = new StreamWriter(memoryStream, Encoding.Default);
+            writer.Write(text);
+            writer.Flush();
+            memoryStream.Position = 0;
+            var value = (InspectResultsSummary)serializer.ReadObject(memoryStream);
+            return value;
+        }
+
+        public static string Serialize(InspectResultsSummary value)
+        {
+            var serializer = new DataContractJsonSerializer(typeof(InspectResultsSummary));
+            var memoryStream = new MemoryStream();
+            serializer.WriteObject(memoryStream, value);
+            memoryStream.Position = 0;
+            var jsonContent = new StreamReader(memoryStream, Encoding.Default).ReadToEnd();
+            return jsonContent;
+        }
+    }
+
+    [DataContract]
+    class RevisionInfo
+    {
+        public RevisionInfo(string inspectId, string caption, string dateTime, int issueCount)
+        {
+            InspectId = inspectId;
+            Caption = caption;
+            DateTime = dateTime;
+            IssueCount = issueCount;
+        }
+
+        [DataMember(Name = &quot;id&quot;, Order = 1)]
+        public string InspectId { get; private set; }
+
+        [DataMember(Name = &quot;caption&quot;, Order = 2)]
+        public string Caption { get; private set; }
+
+        [DataMember(Name = &quot;dateTime&quot;, Order = 3)]
+        public string DateTime { get; private set; }
+
+        [DataMember(Name = &quot;issueCount&quot;, Order = 4)]
+        public int IssueCount { get; private set; }
+    }
+
+    [DataContract]
+    class IssueType
+    {
+        public IssueType(string id, string category, string categoryId, string description, string severity, string wikiUrl, string subCategory)
+        {
+            Id = id;
+            Category = category;
+            CategoryId = categoryId;
+            Description = description;
+            Severity = severity;
+            WikiUrl = wikiUrl;
+            SubCategory = subCategory;
+        }
+
+        [DataMember(Name = &quot;id&quot;, Order = 0)]
+        public string Id { get; private set; }
+
+        [DataMember(Name = &quot;category&quot;, Order = 1)]
+        public string Category { get; private set; }
+
+        [DataMember(Name = &quot;categoryId&quot;, Order = 2)]
+        public string CategoryId { get; private set; }
+
+        [DataMember(Name = &quot;description&quot;, Order = 3)]
+        public string Description { get; private set; }
+
+        [DataMember(Name = &quot;severity&quot;, Order = 4)]
+        public string Severity { get; private set; }
+
+        [DataMember(Name = &quot;wikiUrl&quot;, Order = 5)]
+        public string WikiUrl { get; private set; }
+
+        [DataMember(Name = &quot;subCategory&quot;, Order = 6)]
+        public string SubCategory { get; private set; }
+    }
+
+
+    [DataContract]
+    class Issue
+    {
+        public Issue(string id, string typeId, string file, string offset, string message, ushort line, string project, int column)
+        {
+            Id = id;
+            TypeId = typeId;
+            File = file;
+            Offset = offset;
+            Message = message;
+            Line = line;
+            Project = project;
+            Column = column;
+        }
+
+        [DataMember(Name=&quot;id&quot;, Order = 0)]
+        public string Id { get; private set; }
+        [DataMember(Name = &quot;typeId&quot;, Order = 1)]
+        public string TypeId { get; private set; }
+
+        [DataMember(Name = &quot;file&quot;, Order = 2)]
+        public string File { get; private set; }
+
+        [DataMember(Name = &quot;offset&quot;, Order = 3)]
+        public string Offset { get; private set; }
+
+        [DataMember(Name = &quot;message&quot;, Order = 4)]
+        public string Message { get; private set; }
+
+        [DataMember(Name = &quot;line&quot;, Order = 5)]
+        public ushort Line { get; private set; }
+
+        [DataMember(Name = &quot;project&quot;, Order = 6)]
+        public string Project { get; private set; }
+
+        [DataMember(Name =&quot;column&quot;)]
+        public int Column { get; private set; }
+    }
+}
+
+</pre>
+  <script type="text/javascript" src="../../../js/code.js">
+  </script>
+</body>
+</html>
