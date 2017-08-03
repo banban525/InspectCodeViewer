@@ -1,7 +1,7 @@
-﻿InspectCodeVisualizer
+﻿InspectCodeViewer
 ======================
 
-This is a viewer for Resharper InspectCode Results.
+This is a viewer for [Resharper InspectCode](https://www.jetbrains.com/resharper/features/command-line.html) Results.
 
 ## Description
 
@@ -12,29 +12,35 @@ However, there are only two viewers supports InspectCode results.
 
 These are too heavy to check code review results.
 
-InspectCoeeViewer is a simple tool.
+InspectCodeViewer is a simple tool.
 
 ## Demo
 
+[Live Demo](https://banban525.github.io/InspectCodeViewer/demo/)
 
+![demoimage](demo/demo.gif)
 
 
 ## Requirement
 
-
+This tool is required,
+* .NET Framework 4.5.2
 
 ## Usage
 
 
 
-## Install
-
-
 ## Contribution
 
+1. Fork it
+2. Create your feature branch (git checkout -b my-new-feature)
+3. Commit your changes (git commit -am 'Add some feature')
+4. Push to the branch (git push origin my-new-feature)
+5. Create new Pull Request
 
 ## License
 
+[MIT](/LICENSE.txt)
 
 ## Author
 
