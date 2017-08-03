@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26430.6
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InspectCodeVisualizer", "InspectCodeVisualizer\InspectCodeVisualizer.csproj", "{533FB767-2DFB-44BD-AF2D-FE3708A4F661}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ParseInspectedCodes", "src_cs\ParseInspectedCodes\ParseInspectedCodes.csproj", "{533FB767-2DFB-44BD-AF2D-FE3708A4F661}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{23E8ED81-78FE-4010-BC67-E71D81EAC3D4}"
 	ProjectSection(SolutionItems) = preProject
@@ -46,7 +46,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src_js", "src_js", "{E9190B
 		src_js\SummaryReducer.ts = src_js\SummaryReducer.ts
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UpdateRevisions", "UpdateRevisions\UpdateRevisions.csproj", "{3B39DCFA-36BE-4E21-B164-977625F7B23C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UpdateRevisions", "src_cs\UpdateRevisions\UpdateRevisions.csproj", "{3B39DCFA-36BE-4E21-B164-977625F7B23C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

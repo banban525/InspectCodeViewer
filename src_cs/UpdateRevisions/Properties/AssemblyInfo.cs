@@ -9,8 +9,8 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("UpdateRevisions")]
-[assembly: AssemblyCopyright("Copyright ©  2017")]
+[assembly: AssemblyProduct("InspectCodeViewer")]
+[assembly: AssemblyCopyright("Copyright ©  2017 banban525")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
