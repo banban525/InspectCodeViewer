@@ -11,7 +11,7 @@ using System.Threading;
 using System.Xml;
 using System.Xml.Serialization;
 
-namespace InspectCodeVisualizer
+namespace ParseInspectedCodes
 {
     class Program
     {
@@ -26,11 +26,42 @@ namespace InspectCodeVisualizer
 
             //var inputFile = args[0];
             var inputFile = options.Input;
-            var programBaseDir = options.ProgramBaseDirectory;
+            var programBaseDir = options.ProgramBaseDirectory ??
+                                 Path.GetDirectoryName(inputFile) ?? 
+                                 AppDomain.CurrentDomain.BaseDirectory;
             var inspectId = options.Id;
-            var lastWriteTime = new FileInfo(inputFile).LastWriteTime;
             var caption = options.Title;
             var outputBaseDir = options.OutputDirectory;
+            var link = options.Link;
+
+            if (string.IsNullOrEmpty(outputBaseDir))
+            {
+                var revisionsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "revisions");
+                if (Directory.Exists(revisionsPath) == false)
+                {
+                    Directory.CreateDirectory(revisionsPath);
+                    while (Directory.Exists(revisionsPath) == false)
+                    {
+                        Thread.Sleep(1);
+                    }
+                }
+                outputBaseDir = revisionsPath;
+            }
+
+            if (string.IsNullOrEmpty(inspectId))
+            {
+                var directories = Directory.GetDirectories(outputBaseDir);
+                inspectId = directories
+                    .OrderBy(_ => _)
+                    .Select(Path.GetDirectoryName)
+                    .LastOrDefault() ?? "00001";
+            }
+
+            if (string.IsNullOrEmpty(caption))
+            {
+                caption = inspectId;
+            }
+
 
             Report report;
             using (var fileStream = new FileStream(inputFile, FileMode.Open))
@@ -58,7 +89,8 @@ namespace InspectCodeVisualizer
             var inspectResults = new InspectResults(issues, issueTypes, new RevisionInfo(
                 inspectId,
                 caption,
-                lastWriteTime.ToString("s"),
+                DateTime.Now.ToString("s"),
+                link,
                 issues.Length
                 ));
 
@@ -316,18 +348,21 @@ namespace InspectCodeVisualizer
         public RevisionInfo(
             string inspectId, 
             string caption, 
-            string dateTime, 
+            string dateTime,
+            string link,
             int issueCount)
         {
             InspectId = inspectId;
             Caption = caption;
             DateTime = dateTime;
+            Link = link;
             IssueCount = issueCount;
         }
         public RevisionInfo(
             string inspectId,
             string caption,
             string dateTime,
+            string link,
             int issueCount,
             RevisionIssuesInfo current,
             RevisionIssuesInfo incresedFromPrevious,
@@ -338,6 +373,7 @@ namespace InspectCodeVisualizer
             InspectId = inspectId;
             Caption = caption;
             DateTime = dateTime;
+            Link = link;
             IssueCount = issueCount;
             Current = current;
             IncresedFromPrevious = incresedFromPrevious;
@@ -370,6 +406,9 @@ namespace InspectCodeVisualizer
         public RevisionIssuesInfo FixedFromPrevious { get; private set; }
         [DataMember(Name = "fixedFromFirst", Order = 9)]
         public RevisionIssuesInfo FixedFromFirst { get; private set; }
+
+        [DataMember(Name ="Link", Order = 10)]
+        public string Link { get; private set; }
 
     }
 

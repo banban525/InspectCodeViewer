@@ -1,8 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using InspectCodeVisualizer;
+using System.Threading;
+using ParseInspectedCodes;
 
 namespace UpdateRevisions
 {
@@ -17,6 +19,20 @@ namespace UpdateRevisions
                 return;
             }
             var outputBaseDir = options.OutputDirectory;
+
+            if (string.IsNullOrEmpty(outputBaseDir))
+            {
+                var revisionsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "revisions");
+                if (Directory.Exists(revisionsPath) == false)
+                {
+                    Directory.CreateDirectory(revisionsPath);
+                    while (Directory.Exists(revisionsPath) == false)
+                    {
+                        Thread.Sleep(1);
+                    }
+                }
+                outputBaseDir = revisionsPath;
+            }
 
             // Update summary json
             {
@@ -68,6 +84,7 @@ namespace UpdateRevisions
                     current.MetaInfo.InspectId,
                     current.MetaInfo.Caption,
                     current.MetaInfo.DateTime,
+                    current.MetaInfo.Link,
                     current.MetaInfo.IssueCount,
                     currentRevisionInfo,
                     currentRevisionInfo,
@@ -96,6 +113,7 @@ namespace UpdateRevisions
                 current.MetaInfo.InspectId,
                 current.MetaInfo.Caption,
                 current.MetaInfo.DateTime,
+                current.MetaInfo.Link,
                 current.MetaInfo.IssueCount,
                 currentRevisionInfo,
                 incresedFromPrevious,

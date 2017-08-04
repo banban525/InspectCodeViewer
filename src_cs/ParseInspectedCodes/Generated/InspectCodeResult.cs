@@ -11,7 +11,7 @@
 // 
 // このソース コードは xsd によって自動生成されました。Version=4.6.1055.0 です。
 // 
-namespace InspectCodeVisualizer {
+namespace ParseInspectedCodes{
     using System.Xml.Serialization;
     
     
