@@ -51,15 +51,17 @@ namespace ParseInspectedCodes
             if (string.IsNullOrEmpty(inspectId))
             {
                 var directories = Directory.GetDirectories(outputBaseDir);
-                inspectId = directories
+                var lastId = directories
                     .OrderBy(_ => _)
-                    .Select(Path.GetDirectoryName)
-                    .LastOrDefault() ?? "00001";
+                    .Select(Path.GetFileNameWithoutExtension)
+                    .LastOrDefault() ?? "00000";
+                var lastIdNo = Convert.ToInt32(lastId);
+                inspectId = $"{lastIdNo+1:D5}";
             }
 
             if (string.IsNullOrEmpty(caption))
             {
-                caption = inspectId;
+                caption = "";
             }
 
 
@@ -138,7 +140,7 @@ namespace ParseInspectedCodes
             {
                 string template;
                 using (var stream = Assembly.GetExecutingAssembly()
-                    .GetManifestResourceStream("InspectCodeVisualizer.template.html"))
+                    .GetManifestResourceStream(nameof(ParseInspectedCodes) + ".template.html"))
                 {
                     // ReSharper disable once AssignNullToNotNullAttribute
                     template = new StreamReader(stream).ReadToEnd();
@@ -173,17 +175,20 @@ namespace ParseInspectedCodes
             }
 
             var content = "";
-            for (int i = issue.Line - 5; i <= issue.Line + 5; i++)
+            for (var i = issue.Line - 5; i <= issue.Line + 5; i++)
             {
-                if (i < 0 || lines.Length <= i)
-                {
-                    continue;
-                }
                 if (string.IsNullOrEmpty(content) == false)
                 {
                     content += Environment.NewLine;
                 }
-                content += lines[i];
+                if (0 <= i && i < lines.Length)
+                {
+                    content += lines[i];
+                }
+                else
+                {
+                    content += "@";
+                }
             }
 
             var issueForHash = new IssueForHash(issue.TypeId, issue.File, issue.Column, issue.Message, content);
@@ -200,11 +205,12 @@ namespace ParseInspectedCodes
             var offsetStart = Convert.ToInt32(splitedOffset.First());
 
             var fullPath = Path.Combine(baseDir, issue.File);
-            var content = "";
-            if (File.Exists(fullPath))
+            if (File.Exists(fullPath) == false)
             {
-                content = File.ReadAllText(fullPath);
+                throw new InvalidOperationException("The source code file is not found.:" + fullPath);
             }
+            var content = File.ReadAllText(fullPath);
+            
             var lastLfOffset = content.LastIndexOf("\n", offsetStart, StringComparison.Ordinal);
             var lineOffset = offsetStart - (lastLfOffset + 1);
             
