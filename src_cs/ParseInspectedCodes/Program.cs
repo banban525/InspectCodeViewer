@@ -27,7 +27,7 @@ namespace ParseInspectedCodes
             //var inputFile = args[0];
             var inputFile = options.Input;
             var programBaseDir = options.ProgramBaseDirectory ??
-                                 Path.GetDirectoryName(inputFile) ?? 
+                                 Path.GetDirectoryName(inputFile) ??
                                  AppDomain.CurrentDomain.BaseDirectory;
             var inspectId = options.Id;
             var caption = options.Title;
@@ -52,11 +52,11 @@ namespace ParseInspectedCodes
             {
                 var directories = Directory.GetDirectories(outputBaseDir);
                 var lastId = directories
-                    .OrderBy(_ => _)
-                    .Select(Path.GetFileNameWithoutExtension)
-                    .LastOrDefault() ?? "00000";
+                                 .OrderBy(_ => _)
+                                 .Select(Path.GetFileNameWithoutExtension)
+                                 .LastOrDefault() ?? "00000";
                 var lastIdNo = Convert.ToInt32(lastId);
-                inspectId = $"{lastIdNo+1:D5}";
+                inspectId = $"{lastIdNo + 1:D5}";
             }
 
             if (string.IsNullOrEmpty(caption))
@@ -64,6 +64,8 @@ namespace ParseInspectedCodes
                 caption = "";
             }
 
+            var configFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.json");
+            var config = Config.Deserialize(File.ReadAllText(configFilePath));
 
             Report report;
             using (var fileStream = new FileStream(inputFile, FileMode.Open))
@@ -76,12 +78,15 @@ namespace ParseInspectedCodes
 
             var issues = report.Issues
                 .SelectMany(_ => _.Issue.Select(issue => new {issue, Project = _.Name}))
-                .Select(_ => new Issue("", _.issue.TypeId, _.issue.File, _.issue.Offset, _.issue.Message, _.issue.Line, _.Project, 0))
-                .Select(_ => new Issue(_.Id, _.TypeId, _.File, _.Offset, _.Message, _.Line, _.Project, GetColumnNo(_, programBaseDir)))
-                .Select(_ => new Issue(CreateId(_, programBaseDir), _.TypeId, _.File, _.Offset, _.Message, _.Line, _.Project, _.Column))
+                .Select(_ => new Issue("", _.issue.TypeId, _.issue.File, _.issue.Offset, _.issue.Message, _.issue.Line,
+                    _.Project, 0))
+                .Select(_ => new Issue(_.Id, _.TypeId, _.File, _.Offset, _.Message, _.Line, _.Project,
+                    GetColumnNo(_, programBaseDir)))
+                .Select(_ => new Issue(CreateId(_, programBaseDir), _.TypeId, _.File, _.Offset, _.Message, _.Line,
+                    _.Project, _.Column))
                 .ToArray();
 
-            issues.ToList().ForEach(_=> GetColumnNo(_, programBaseDir));
+            issues.ToList().ForEach(_ => GetColumnNo(_, programBaseDir));
             var issueTypes = report.IssueTypes
                 .Select(_ => new IssueType(_.Id, _.Category, _.CategoryId, _.Description, _.Severity, _.WikiUrl,
                     _.SubCategory))
@@ -94,7 +99,7 @@ namespace ParseInspectedCodes
                 DateTime.Now.ToString("s"),
                 link,
                 issues.Length
-                ));
+            ));
 
 
             // Prepare output directories.
@@ -153,16 +158,51 @@ namespace ParseInspectedCodes
                     {
                         continue;
                     }
-                    var content = File.ReadAllText(absoleteFilePath, Encoding.UTF8);
+                    var encoding = DetectEncoding(absoleteFilePath, config.EncodingList);
+                    var codeType = DetectCodeType(absoleteFilePath, config.CodeTypes);
+                    var content = File.ReadAllText(absoleteFilePath, encoding);
                     var htmlFileName = filePath.Replace("\\", "_") + ".html";
                     var htmlFilePath = Path.Combine(codeDir, htmlFileName);
-                    
+
                     var htmlContent = template.Replace("@CODE@", SecurityElement.Escape(content));
+                    htmlContent = htmlContent.Replace("@CODETYPE@", codeType.Type);
                     File.WriteAllText(htmlFilePath, htmlContent, Encoding.UTF8);
                 }
             }
-            
+
             return 0;
+        }
+
+        private static ConfigCodeType DetectCodeType(string absoleteFilePath, ConfigCodeType[] configCodeTypes)
+        {
+            var extension = Path.GetExtension(absoleteFilePath);
+            var matchCodeType = configCodeTypes.FirstOrDefault(_ => _.Extentions.Contains(extension)) ??
+                                configCodeTypes[0];
+
+            return matchCodeType;
+        }
+
+        private static Encoding DetectEncoding(string absoleteFilePath, string[] configEncodingList)
+        {
+            byte[] buffer;
+            using (var stream = new FileStream(absoleteFilePath, FileMode.Open))
+            {
+                buffer = new byte[stream.Length];
+                stream.Read(buffer, 0, buffer.Length);
+            }
+            foreach (var encodingName in configEncodingList)
+            {
+                var encoding = Encoding.GetEncoding(encodingName);
+                var content = encoding.GetString(buffer);
+                var encodedBytes = encoding.GetBytes(content);
+                if (buffer.Length == encodedBytes.Length &&
+                    buffer.Zip(encodedBytes, (x, y) => new {x, y}).All(_ => _.x == _.y))
+                {
+                    return encoding;
+                }
+            }
+            return Encoding.GetEncoding(configEncodingList[0]);
+
         }
 
         static string CreateId(Issue issue, string baseDir)
@@ -515,5 +555,46 @@ namespace ParseInspectedCodes
 
         [DataMember(Name ="column")]
         public int Column { get; private set; }
+    }
+
+    [DataContract]
+    public class Config
+    {
+        [DataMember(Name= "encodingList")]
+        public string[] EncodingList { get; private set; }
+        [DataMember(Name = "codeTypes")]
+        public ConfigCodeType[] CodeTypes { get; private set; }
+
+        public static Config Deserialize(string text)
+        {
+            var serializer = new DataContractJsonSerializer(typeof(Config));
+            var memoryStream = new MemoryStream();
+            var writer = new StreamWriter(memoryStream, Encoding.Default);
+            writer.Write(text);
+            writer.Flush();
+            memoryStream.Position = 0;
+            var value = (Config)serializer.ReadObject(memoryStream);
+            return value;
+        }
+
+        public static string Serialize(Config value)
+        {
+            var serializer = new DataContractJsonSerializer(typeof(Config));
+            var memoryStream = new MemoryStream();
+            serializer.WriteObject(memoryStream, value);
+            memoryStream.Position = 0;
+            var jsonContent = new StreamReader(memoryStream, Encoding.Default).ReadToEnd();
+            return jsonContent;
+        }
+    }
+    
+
+    [DataContract]
+    public class ConfigCodeType
+    {
+        [DataMember(Name = "type")]
+        public string Type { get; private set; }
+        [DataMember(Name = "extentions")]
+        public string[] Extentions { get;private set; }
     }
 }

@@ -1,0 +1,32 @@
+﻿{
+  "encodingList": [
+    "utf-8",
+    "sjis"
+  ],
+  "codeTypes": [
+    {
+      "type": "csharp",
+      "extentions": [ ".cs" ]
+    },
+    {
+      "type": "vbnet",
+      "extentions": [ ".vb" ]
+    },
+    {
+      "type": "cpp",
+      "extentions": [ ".c", ".cpp", ".h", ".hpp" ]
+    },
+    {
+      "type": "xml",
+      "extentions": [ ".html", ".htm", ".aspx", ".xml", ".xaml", ".resx", ".csproj" ]
+    },
+    {
+      "type": "javascript",
+      "extentions": [ ".js", "jsx", ".ts", "tsx", ".json" ]
+    },
+    {
+      "type": "css",
+      "extentions": [ ".css" ]
+    }
+  ] 
+}
