@@ -48,6 +48,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src_js", "src_js", "{E9190B
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UpdateRevisions", "src_cs\UpdateRevisions\UpdateRevisions.csproj", "{3B39DCFA-36BE-4E21-B164-977625F7B23C}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src_cs", "src_cs", "{F4977647-C618-46C6-8584-A3E593D04E88}"
+	ProjectSection(SolutionItems) = preProject
+		src_cs\build.ps1 = src_cs\build.ps1
+		src_cs\SharedAssemblyInfo.cs = src_cs\SharedAssemblyInfo.cs
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -71,5 +77,6 @@ Global
 		{9D109DCF-01AE-41C0-BFFC-A2F281ACCC62} = {F25A4F2B-7B65-426E-8B87-A038E079AB92}
 		{24D4EB1F-D84A-4416-8C17-6D138FDB51E8} = {F25A4F2B-7B65-426E-8B87-A038E079AB92}
 		{E9190BC4-0269-4C44-AA9E-216F4B9C8BD0} = {23E8ED81-78FE-4010-BC67-E71D81EAC3D4}
+		{F4977647-C618-46C6-8584-A3E593D04E88} = {23E8ED81-78FE-4010-BC67-E71D81EAC3D4}
 	EndGlobalSection
 EndGlobal
