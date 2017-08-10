@@ -14,10 +14,7 @@ using System.Reflection;
 `;
 
 let FileSystem = require('fs');
-FileSystem.writeFile(`${basedir}/src_cs/SharedAssemblyInfo.cs`, $assemblyInfoContent , function (err) {
-  console.log(err);
-  process.exit(1);
-});
+FileSystem.writeFileSync(`${basedir}/src_cs/SharedAssemblyInfo.cs`, $assemblyInfoContent);
 
 
 let msbuild = new Msbuild();
@@ -25,9 +22,11 @@ let msbuild = new Msbuild();
 msbuild.sourcePath = `${basedir}/InspectCodeViewer.sln`;
 msbuild.configuration='Release';
 msbuild.version = "14.0";
+msbuild.on('done',function(err,results){ 
+  shell.cp(`${basedir}/src_cs/UpdateRevisions/bin/Release/*.exe`, `${basedir}/bin/`);
+  shell.cp(`${basedir}/src_cs/UpdateRevisions/bin/Release/*.dll`, `${basedir}/bin/`);
+  shell.cp(`${basedir}/src_cs/UpdateRevisions/bin/Release/*.json`, `${basedir}/bin/`);
+  shell.cp(`${basedir}/src_cs/UpdateRevisions/bin/Release/*.config`, `${basedir}/bin/`);
+});
 msbuild.build();
 
-shell.cp(`${basedir}/src_cs/UpdateRevisions/bin/Release/*.exe`, `${basedir}/bin/`);
-shell.cp(`${basedir}/src_cs/UpdateRevisions/bin/Release/*.dll`, `${basedir}/bin/`);
-shell.cp(`${basedir}/src_cs/UpdateRevisions/bin/Release/*.json`, `${basedir}/bin/`);
-shell.cp(`${basedir}/src_cs/UpdateRevisions/bin/Release/*.config`, `${basedir}/bin/`);
