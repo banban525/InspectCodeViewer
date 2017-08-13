@@ -39,6 +39,7 @@ var ajaxQueue:any[] = [];
 function myAjax(url:string, onRecieved:(data:any)=>void):void {
   if(isScriptBlockWorking)
   {
+    console.log(`enqueue:${url}`);
     ajaxQueue.push({
       url:url,
       onRecieved:onRecieved
@@ -49,10 +50,12 @@ function myAjax(url:string, onRecieved:(data:any)=>void):void {
   var s:any = document.createElement("script");
   s.src = url;
   s.onload = () => {
+    console.log(`ajax recieved:${url}`);
     onRecieved(__data);
     isScriptBlockWorking = false;
     if(ajaxQueue.length !== 0){
-      var command = ajaxQueue.pop();
+      var command = ajaxQueue.shift();
+      console.log(`dequeue ${command.url}`);
       myAjax(command.url, command.onRecieved);
     }
   }
@@ -60,7 +63,8 @@ function myAjax(url:string, onRecieved:(data:any)=>void):void {
     console.log("onerror");
     isScriptBlockWorking = false;
     if(ajaxQueue.length !== 0){
-      var command = ajaxQueue.pop();
+      var command = ajaxQueue.shift();
+      console.log(`dequeue ${command.url}`);
       myAjax(command.url, command.onRecieved);
     }  
   }

@@ -39,7 +39,7 @@ import {IssueGroupByTypes, IInspectResultsSummary,IIssue,IIssueType,IOriginalDat
 import { IIssueBrowserState,IssueIconType,IGroup,IItem,IssueBrowserActionDispatcher,DiffMode} from './IssueBrowserReducer';
 import {RouteComponentProps} from 'react-router-dom';
 import * as querystring from 'query-string';
-import {LocationDescriptorObject} from 'history';
+import {LocationDescriptorObject, Location} from 'history';
 
 export interface IIssueBrowserProps extends IIssueBrowserState,RouteComponentProps<any>
 {
@@ -60,10 +60,20 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
     this.createIssueGroupElement = this.createIssueGroupElement.bind(this);
     this.createIssueElement = this.createIssueElement.bind(this);
     this.createExpandComponent = this.createExpandComponent.bind(this);
+    this.onChangedLocation = this.onChangedLocation.bind(this);
 
-    var queyparameters = this.props.location.search
-    var revisionId = this.props.match.params.revid;
-    var issueId = this.props.match.params.issueid;
+    this.props.history.listen((location:Location, action:'PUSH'|'POP'|'REPLACE')=>{
+      this.onChangedLocation(location);
+    });
+    this.onChangedLocation(this.props.location);
+  }
+
+  onChangedLocation(location: Location):void{
+    var queyparameters = location.search;
+    var splitedPathNameList = location.pathname.split("/");
+    
+    var revisionId = splitedPathNameList.length > 2 ? splitedPathNameList[2] : "";
+    var issueId = splitedPathNameList.length > 3 ? splitedPathNameList[3] : "";
     var parsed  = querystring.parse(queyparameters);
     var hideStr:string = "";
     if(parsed.hidefilter !== undefined)
@@ -91,9 +101,9 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
         diffMode = DiffMode.FixedFromFirst;
       }
     }
+    console.log(`onChangedLocation:${revisionId}, ${diffMode}, ${issueId}, ${hideStr}`);
     this.props.actions.getInitialData2(revisionId, diffMode, issueId, hideStr);
   }
-
 
   getCodePageUri():string
   {
@@ -174,7 +184,7 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
               this.props.showWarningIssues,
               this.props.showSuggestionIssues,
               this.props.showHintIssues));
-            this.props.actions.onSelectedIssue(row.id as string);
+            //this.props.actions.onSelectedIssue(row.id as string);
             return false;
           },
           selected: [this.props.selectedIssueId]
@@ -216,7 +226,7 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
               this.props.showWarningIssues,
               this.props.showSuggestionIssues,
               this.props.showHintIssues));
-            this.props.actions.onSelectedIssue(row.id as string);
+            //this.props.actions.onSelectedIssue(row.id as string);
             return false;
           },
           selected: [this.props.selectedIssueId]
@@ -450,7 +460,7 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
                     this.props.showSuggestionIssues,
                     this.props.showHintIssues));
 
-                    this.props.actions.onToggleShowErrorIssues();
+                    //this.props.actions.onToggleShowErrorIssues();
                   }}/>
               <FlatButton 
                 style={this.props.showWarningIssues?activeToggleButtonStyle:inactiveToggleButtonStyle} 
@@ -465,7 +475,7 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
                     this.props.showSuggestionIssues,
                     this.props.showHintIssues));
                     
-                    this.props.actions.onToggleShowWarningIssues();
+                    //this.props.actions.onToggleShowWarningIssues();
                   }}/>
               <FlatButton 
                 style={this.props.showSuggestionIssues?activeToggleButtonStyle:inactiveToggleButtonStyle} 
@@ -480,7 +490,7 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
                     !this.props.showSuggestionIssues,
                     this.props.showHintIssues));
                     
-                    this.props.actions.onToggleShowSuggestionIssues();
+                    //this.props.actions.onToggleShowSuggestionIssues();
                   }}/>
               <FlatButton 
                 style={this.props.showHintIssues?activeToggleButtonStyle:inactiveToggleButtonStyle} 
@@ -495,7 +505,7 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
                     this.props.showSuggestionIssues,
                     !this.props.showHintIssues));
                     
-                    this.props.actions.onToggleShowHintIssues();
+                    //this.props.actions.onToggleShowHintIssues();
                   }}/>
             </ToolbarGroup>
             <ToolbarGroup>

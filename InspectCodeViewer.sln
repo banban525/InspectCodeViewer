@@ -50,6 +50,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UpdateRevisions", "src_cs\U
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src_cs", "src_cs", "{F4977647-C618-46C6-8584-A3E593D04E88}"
 	ProjectSection(SolutionItems) = preProject
+		src_cs\build.js = src_cs\build.js
 		src_cs\build.ps1 = src_cs\build.ps1
 		src_cs\SharedAssemblyInfo.cs = src_cs\SharedAssemblyInfo.cs
 	EndProjectSection
