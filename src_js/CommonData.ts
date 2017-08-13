@@ -17,6 +17,13 @@ export interface IInspectResultsSummary
 {
   revisionInfos:IRevisionInfo[]
 }
+
+export namespace IInspectResultsSummary{
+  export let Empty:IInspectResultsSummary ={
+    revisionInfos:[]
+  };
+}
+
 export interface IRevisionInfo{
   id:string;
   caption:string;
@@ -28,11 +35,28 @@ export interface IRevisionInfo{
   fixedFromFirst?:RevisionIssuesInfo;
 }
 
+export namespace IRevisionInfo{
+  export let Empty:IRevisionInfo = {
+    id:"",
+    caption:"",
+    issueCount:0
+  };
+}
+
 export interface RevisionIssuesInfo{
     errorIssuesCount:number;
     warningIssuesCount:number;
     suggestionIssuesCount:number;
     hintIssuesCount:number;
+}
+
+export namespace RevisionIssuesInfo{
+  export let Empty:RevisionIssuesInfo = {
+    errorIssuesCount:0,
+    warningIssuesCount:0,
+    suggestionIssuesCount:0,
+    hintIssuesCount:0
+  }
 }
 
 export interface IIssueType{
@@ -42,6 +66,17 @@ export interface IIssueType{
   description:string;
   severity:string;
   wikiUrl:string;
+}
+
+export namespace IIssueType{
+  export let Empty:IIssueType={
+    id:"",
+    category:"",
+    categoryId:"",
+    description:"",
+    severity:"",
+    wikiUrl:""
+  };
 }
 
 export interface IIssue{
@@ -55,8 +90,30 @@ export interface IIssue{
   column:number;
 }
 
+export namespace IIssue{
+  export let Empty:IIssue={
+    id:"",
+    typeId:"",
+    file:"",
+    offset:"",
+    line:"",
+    message:"",
+    project:"",
+    column:0
+  };
+}
+
+
 export interface IOriginalData{
   issueTypes:IIssueType[];
   issues:IIssue[];
   metaInfo:IRevisionInfo
+}
+
+export namespace IOriginalData{
+  export let Empty:IOriginalData={
+    issueTypes:[],
+    issues:[],
+    metaInfo:IRevisionInfo.Empty
+  };
 }

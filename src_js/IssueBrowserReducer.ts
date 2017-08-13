@@ -237,56 +237,14 @@ export class IssueBrowserActionDispatcher
 
 const initialIssueBrowserState: IIssueBrowserState = {
   issuesGroupBy:IssueGroupByTypes.IssueType, 
-  selectedIssue:{
-    id:"",
-    file:"",
-    line:"0",
-    message:"",
-    offset:"0",
-    project:"",
-    typeId:"",
-    column:0
-  }, 
-  selectedIssueType:{
-    id:"",
-    category:"",
-    categoryId:"",
-    description:"",
-    severity:"",
-    wikiUrl:""
-  },
-  currentData:{
-    issues:[],
-    issueTypes:[],
-    metaInfo:{
-      id:"",
-      caption:"",
-      issueCount:0
-    }
-  },
-  diffBaseData:{
-    issues:[],
-    issueTypes:[],
-    metaInfo:{
-      id:"",
-      caption:"",
-      issueCount:0
-    }
-  },
+  selectedIssue:IIssue.Empty, 
+  selectedIssueType:IIssueType.Empty,
+  currentData:IOriginalData.Empty,
+  diffBaseData:IOriginalData.Empty,
   tree: createTree([], [], [], IssueGroupByTypes.IssueType, DiffMode.Normal, true,true,true,true),
-  revisions:{
-    revisionInfos:[]
-  },
-  selectedRevision:{
-    id:"",
-    issueCount:0,
-    caption:""
-  },
-  selectedDiffBaseRevision:{
-    id:"",
-    issueCount:0,
-    caption:""
-  },
+  revisions:IInspectResultsSummary.Empty,
+  selectedRevision:IRevisionInfo.Empty,
+  selectedDiffBaseRevision:IRevisionInfo.Empty,
   diffMode:0,
   showErrorIssues:true,
   showWarningIssues:true,
@@ -596,6 +554,55 @@ function openParentGroups(tree:IGroup, issueId:string):IGroup{
   return tree;
 }
 
+function createIssueTreeState(
+  currentData:IOriginalData, 
+  diffBaseData:IOriginalData, 
+  issuesGroupBy:IssueGroupByTypes, 
+  diffMode:DiffMode,
+  showErrorIssues:boolean,
+  showWarningIssues:boolean,
+  showSuggestionIssues:boolean,
+  showHintIssues:boolean
+):any
+{
+  let targetData:IOriginalData = currentData;
+  let diffData:IOriginalData = diffBaseData;
+  if(diffMode === DiffMode.FixedFromFirst || diffMode === DiffMode.FixedFromPrevious)
+  {
+    targetData = diffBaseData;
+    diffData = currentData;
+  }
+
+  var tree = createTree(
+    currentData.issues, 
+    diffBaseData.issues,
+    targetData.issueTypes,
+    issuesGroupBy,
+    diffMode,
+    showErrorIssues,
+    showWarningIssues,
+    showSuggestionIssues,
+    showHintIssues);
+  
+  var selectedIssue:IIssue = IIssue.Empty;
+  var selectedIssueType:IIssueType = IIssueType.Empty;
+  var firstIssue = getFirstIssue(tree);
+  if(firstIssue !== null)
+  {
+    var firstIssueId = firstIssue.id;
+    tree = openParentGroups(tree, firstIssueId);
+
+    selectedIssue = targetData.issues.filter(_=>_.id===firstIssueId.replace("ISSUE_",""))[0];
+    selectedIssueType=targetData.issueTypes.filter(_=>_.id === selectedIssue.typeId)[0];
+  }
+  return {
+    selectedIssue:selectedIssue, 
+    selectedIssueType:selectedIssueType,
+    selectedIssueId:firstIssueId,
+    tree: tree
+  };
+}
+
 export function IssueBrowserReducer(state: IIssueBrowserState = initialIssueBrowserState, action: any) {
 console.log(action);
   switch (action.type) 
@@ -613,50 +620,21 @@ console.log(action);
   case 'receivedInitialData':
     return objectAssign({}, state, {revisions:action.revisions});
   case 'onChangeIssuesGroupBy':
-    var tree = createTree(
-      state.currentData.issues, 
-      state.diffBaseData.issues, 
-      state.currentData.issueTypes, 
+    var issueTreeState = createIssueTreeState(
+      state.currentData,
+      state.diffBaseData,
       action.value,
       state.diffMode,
       state.showErrorIssues,
       state.showWarningIssues,
       state.showSuggestionIssues,
       state.showHintIssues
-      );
-    var selectedIssue = {
-      id:"",
-      typeId:"",
-      file:"",
-      offset:"",
-      line:"",
-      message:"",
-      project:"",
-      column:0
-    };
-    var selectedIssueType = {
-      id:"",
-      category:"",
-      categoryId:"",
-      description:"",
-      severity:"",
-      wikiUrl:""
-    };
-    var firstIssue = getFirstIssue(tree);
-    if(firstIssue !== null)
-    {
-      var firstIssueId = firstIssue.id;
-      tree = openParentGroups(tree, firstIssueId);
-
-      selectedIssue = state.currentData.issues.filter(_=>_.id===firstIssueId.replace("ISSUE_",""))[0];
-      selectedIssueType = state.currentData.issueTypes.filter(_=>_.id === selectedIssue.typeId)[0]
-    }
+    );
+    
     return objectAssign({}, state, {
-      issuesGroupBy:action.value, 
-      selectedIssue:selectedIssue, 
-      selectedIssueType:selectedIssueType,
-      selectedIssueId:firstIssueId,
-      tree:tree});
+      issuesGroupBy:action.value,
+      },
+      issueTreeState);
   case 'onSelectedIssueId':
     if(action.value.match(/^ISSUE_/) !== null)
     {
@@ -697,102 +675,41 @@ console.log(action);
     
   case 'revievedRevisionData':
     var data:IOriginalData = action.data;
-    var tree = createTree(
-      data.issues, 
-      state.diffBaseData.issues,
-      data.issueTypes, 
+    var issueTreeState = createIssueTreeState(
+      data,
+      state.diffBaseData,
       state.issuesGroupBy,
       state.diffMode,
       state.showErrorIssues,
       state.showWarningIssues,
       state.showSuggestionIssues,
-      state.showHintIssues);
+      state.showHintIssues
+    );
     
-    var selectedIssue = {
-      id:"",
-      typeId:"",
-      file:"",
-      offset:"",
-      line:"",
-      message:"",
-      project:"",
-      column:0
-    };
-    var selectedIssueType = {
-      id:"",
-      category:"",
-      categoryId:"",
-      description:"",
-      severity:"",
-      wikiUrl:""
-    };
-    var firstIssue = getFirstIssue(tree);
-    if(firstIssue !== null)
-    {
-      var firstIssueId = firstIssue.id;
-      tree = openParentGroups(tree, firstIssueId);
-
-      selectedIssue = data.issues.filter(_=>_.id===firstIssueId.replace("ISSUE_",""))[0];
-      selectedIssueType=data.issueTypes.filter(_=>_.id === selectedIssue.typeId)[0];
-    }
     return objectAssign({}, state, {
-      selectedIssue:selectedIssue, 
-      selectedIssueType:selectedIssueType,
-      selectedIssueId:firstIssueId,
       currentData:data,
-      selectedRevision:data.metaInfo,
-      tree: tree
-    });
+      selectedRevision:data.metaInfo
+    },
+    issueTreeState);
   
   case 'revievedDiffBaseRevisionData':
     var diffBaseData:IOriginalData = action.data;
-    var tree = createTree(
-      state.currentData.issues, 
-      diffBaseData.issues,
-      state.currentData.issueTypes, 
+    var issueTreeState = createIssueTreeState(
+      state.currentData,
+      diffBaseData,
       state.issuesGroupBy,
       state.diffMode,
       state.showErrorIssues,
       state.showWarningIssues,
       state.showSuggestionIssues,
-      state.showHintIssues);
+      state.showHintIssues
+    );
 
-    var selectedIssue = {
-      id:"",
-      typeId:"",
-      file:"",
-      offset:"",
-      line:"",
-      message:"",
-      project:"",
-      column:0
-    };
-    var selectedIssueType = {
-      id:"",
-      category:"",
-      categoryId:"",
-      description:"",
-      severity:"",
-      wikiUrl:""
-    };
-    var firstIssue = getFirstIssue(tree);
-    if(firstIssue !== null)
-    {
-      var firstIssueId = firstIssue.id;
-      tree = openParentGroups(tree, firstIssueId);
-
-      selectedIssue = state.currentData.issues.filter(_=>_.id===firstIssueId.replace("ISSUE_",""))[0];
-      selectedIssueType = state.currentData.issueTypes.filter(_=>_.id === selectedIssue.typeId)[0];
-    }    
     return objectAssign({}, state, {
-      selectedIssue:selectedIssue, 
-      selectedIssueType:selectedIssueType,
-      selectedIssueId:firstIssueId,
-
       diffBaseData:diffBaseData,
       selectedDiffBaseRevision:diffBaseData.metaInfo,
-      tree: tree
-    });
+    },
+    issueTreeState);
   case 'onChangedTherma':
     localStorage["InspectCodeViewer.themaId"] = action.value;
     return objectAssign({}, state,{selectedThermaId:action.value});
@@ -839,279 +756,100 @@ console.log(action);
     var newTree = updateGroups(state.tree, newParent);
     return objectAssign({}, state, {tree:newTree});
   case 'onChangeDiffMode':
-    var tree = createTree(
-      state.currentData.issues, 
-      state.diffBaseData.issues,
-      state.currentData.issueTypes, 
+    var issueTreeState = createIssueTreeState(
+      state.currentData,
+      state.diffBaseData,
       state.issuesGroupBy,
       action.value,
       state.showErrorIssues,
       state.showWarningIssues,
       state.showSuggestionIssues,
-      state.showHintIssues);
-
-    var selectedIssue = {
-      id:"",
-      typeId:"",
-      file:"",
-      offset:"",
-      line:"",
-      message:"",
-      project:"",
-      column:0
-    };
-    var selectedIssueType = {
-      id:"",
-      category:"",
-      categoryId:"",
-      description:"",
-      severity:"",
-      wikiUrl:""
-    };
-    var firstIssue = getFirstIssue(tree);
-    if(firstIssue !== null)
-    {
-      var firstIssueId = firstIssue.id;
-      tree = openParentGroups(tree, firstIssueId);
-
-      selectedIssue = state.currentData.issues.filter(_=>_.id===firstIssueId.replace("ISSUE_",""))[0];
-      selectedIssueType = state.currentData.issueTypes.filter(_=>_.id === selectedIssue.typeId)[0];
-    }
+      state.showHintIssues
+    );
     return objectAssign({}, state,{
-      selectedIssue:selectedIssue, 
-      selectedIssueType:selectedIssueType,
-      selectedIssueId:firstIssueId,
       diffMode:action.value,
-      tree:tree
-    });
+    },
+    issueTreeState);
   case 'onToggleShowErrorIssues':
-    var tree = createTree(
-      state.currentData.issues, 
-      state.diffBaseData.issues,
-      state.currentData.issueTypes, 
+    var issueTreeState = createIssueTreeState(
+      state.currentData,
+      state.diffBaseData,
       state.issuesGroupBy,
       state.diffMode,
       !state.showErrorIssues,
       state.showWarningIssues,
       state.showSuggestionIssues,
-      state.showHintIssues);
+      state.showHintIssues
+    );
 
-    var selectedIssue = {
-      id:"",
-      typeId:"",
-      file:"",
-      offset:"",
-      line:"",
-      message:"",
-      project:"",
-      column:0
-    };
-    var selectedIssueType = {
-      id:"",
-      category:"",
-      categoryId:"",
-      description:"",
-      severity:"",
-      wikiUrl:""
-    };
-    var firstIssue = getFirstIssue(tree);
-    if(firstIssue !== null)
-    {
-      var firstIssueId = firstIssue.id;
-      tree = openParentGroups(tree, firstIssueId);
-
-      selectedIssue = state.currentData.issues.filter(_=>_.id===firstIssueId.replace("ISSUE_",""))[0];
-      selectedIssueType = state.currentData.issueTypes.filter(_=>_.id === selectedIssue.typeId)[0];
-    }    
     return objectAssign({}, state,{
-      showErrorIssues:!state.showErrorIssues, 
-      selectedIssue:selectedIssue, 
-      selectedIssueType:selectedIssueType,
-      selectedIssueId:firstIssueId,
-      tree:tree});
+      showErrorIssues:!state.showErrorIssues},
+      issueTreeState);
   case 'onToggleShowWarningIssues':
-    var tree = createTree(
-      state.currentData.issues, 
-      state.diffBaseData.issues,
-      state.currentData.issueTypes, 
+    var issueTreeState = createIssueTreeState(
+      state.currentData,
+      state.diffBaseData,
       state.issuesGroupBy,
       state.diffMode,
       state.showErrorIssues,
       !state.showWarningIssues,
       state.showSuggestionIssues,
-      state.showHintIssues);
+      state.showHintIssues
+    );
 
-    var selectedIssue = {
-      id:"",
-      typeId:"",
-      file:"",
-      offset:"",
-      line:"",
-      message:"",
-      project:"",
-      column:0
-    };
-    var selectedIssueType = {
-      id:"",
-      category:"",
-      categoryId:"",
-      description:"",
-      severity:"",
-      wikiUrl:""
-    };
-    var firstIssue = getFirstIssue(tree);
-    if(firstIssue !== null)
-    {
-      var firstIssueId = firstIssue.id;
-      tree = openParentGroups(tree, firstIssueId);
-
-      selectedIssue = state.currentData.issues.filter(_=>_.id===firstIssueId.replace("ISSUE_",""))[0];
-      selectedIssueType = state.currentData.issueTypes.filter(_=>_.id === selectedIssue.typeId)[0];
-    }
-    return objectAssign({}, state,{
-      showWarningIssues:!state.showWarningIssues,
-      selectedIssue:selectedIssue, 
-      selectedIssueType:selectedIssueType,
-      selectedIssueId:firstIssueId,
-      tree:tree});
+    return objectAssign({}, state,{showWarningIssues:!state.showWarningIssues},
+      issueTreeState);
   case 'onToggleShowSuggestionIssues':
-    var tree = createTree(
-      state.currentData.issues, 
-      state.diffBaseData.issues,
-      state.currentData.issueTypes, 
+    var issueTreeState = createIssueTreeState(
+      state.currentData,
+      state.diffBaseData,
       state.issuesGroupBy,
       state.diffMode,
       state.showErrorIssues,
       state.showWarningIssues,
       !state.showSuggestionIssues,
-      state.showHintIssues);
-    var selectedIssue = {
-      id:"",
-      typeId:"",
-      file:"",
-      offset:"",
-      line:"",
-      message:"",
-      project:"",
-      column:0
-    };
-    var selectedIssueType = {
-      id:"",
-      category:"",
-      categoryId:"",
-      description:"",
-      severity:"",
-      wikiUrl:""
-    };
-    var firstIssue = getFirstIssue(tree);
-    if(firstIssue !== null)
-    {
-      var firstIssueId = firstIssue.id;
-      tree = openParentGroups(tree, firstIssueId);
+      state.showHintIssues
+    );
 
-      selectedIssue = state.currentData.issues.filter(_=>_.id===firstIssueId.replace("ISSUE_",""))[0];
-      selectedIssueType = state.currentData.issueTypes.filter(_=>_.id === selectedIssue.typeId)[0];
-    }
     return objectAssign({}, state,{
       showSuggestionIssues:!state.showSuggestionIssues, 
-      selectedIssue:selectedIssue, 
-      selectedIssueType:selectedIssueType,
-      selectedIssueId:firstIssueId,
-      tree:tree});
+      },
+      issueTreeState);
   case 'onToggleShowHintIssues':
-    var tree = createTree(
-      state.currentData.issues, 
-      state.diffBaseData.issues,
-      state.currentData.issueTypes, 
+    var issueTreeState = createIssueTreeState(
+      state.currentData,
+      state.diffBaseData,
       state.issuesGroupBy,
       state.diffMode,
       state.showErrorIssues,
       state.showWarningIssues,
       state.showSuggestionIssues,
-      !state.showHintIssues);
-    
-    var selectedIssue = {
-      id:"",
-      typeId:"",
-      file:"",
-      offset:"",
-      line:"",
-      message:"",
-      project:"",
-      column:0
-    };
-    var selectedIssueType = {
-      id:"",
-      category:"",
-      categoryId:"",
-      description:"",
-      severity:"",
-      wikiUrl:""
-    };
-    var firstIssue = getFirstIssue(tree);
-    if(firstIssue !== null)
-    {
-      var firstIssueId = firstIssue.id;
-      tree = openParentGroups(tree, firstIssueId);
+      !state.showHintIssues
+    );
 
-      selectedIssue = state.currentData.issues.filter(_=>_.id===firstIssueId.replace("ISSUE_",""))[0];
-      selectedIssueType = state.currentData.issueTypes.filter(_=>_.id === selectedIssue.typeId)[0];
-    }
     return objectAssign({}, state,{
       showHintIssues:!state.showHintIssues, 
-      selectedIssue:selectedIssue, 
-      selectedIssueType:selectedIssueType,
-      selectedIssueId:firstIssueId,
-      tree:tree});
+      },
+      issueTreeState);
   case 'setIssuesFilter':
-    var tree = createTree(
-      state.currentData.issues, 
-      state.diffBaseData.issues,
-      state.currentData.issueTypes, 
+    var issueTreeState = createIssueTreeState(
+      state.currentData,
+      state.diffBaseData,
       state.issuesGroupBy,
       state.diffMode,
       action.error,
       action.warning,
       action.suggestion,
-      action.hint);
-  
-    var selectedIssue = {
-      id:"",
-      typeId:"",
-      file:"",
-      offset:"",
-      line:"",
-      message:"",
-      project:"",
-      column:0
-    };
-    var selectedIssueType = {
-      id:"",
-      category:"",
-      categoryId:"",
-      description:"",
-      severity:"",
-      wikiUrl:""
-    };
-    var firstIssue = getFirstIssue(tree);
-    if(firstIssue !== null)
-    {
-      var firstIssueId = firstIssue.id;
-      tree = openParentGroups(tree, firstIssueId);
+      action.hint
+    );
 
-      selectedIssue = state.currentData.issues.filter(_=>_.id===firstIssueId.replace("ISSUE_",""))[0];
-      selectedIssueType = state.currentData.issueTypes.filter(_=>_.id === selectedIssue.typeId)[0];
-    }
     return objectAssign({}, state, {
       showErrorIssues:action.error,
       showWarningIssues:action.warning,
       showSuggestionIssues:action.suggestion,
       showHintIssues:action.hint,
-      selectedIssue:selectedIssue, 
-      selectedIssueType:selectedIssueType,
-      selectedIssueId:firstIssueId,
-      tree:tree
-    });
+    },
+    issueTreeState);
   case 'onMovePreviousIssue':
     var items = toSequence(state.tree);
     if(items.length === 0)
