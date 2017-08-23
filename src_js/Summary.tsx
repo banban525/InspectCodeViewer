@@ -14,6 +14,8 @@ import {
 import {AreaChart, XAxis, YAxis, CartesianGrid, Tooltip, Area,ComposedChart,Bar,ReferenceLine} from 'recharts';
 import {blue500, red500, green500, lime500} from 'material-ui/styles/colors';
 import {Link} from 'react-router-dom';
+import LaunchIcon from 'material-ui/svg-icons/action/launch';
+import {IRevisionInfo} from './CommonData'
 
 export interface ISummaryProps extends ISummaryState,RouteComponentProps<any>
 {
@@ -27,6 +29,17 @@ class Summary extends Component<ISummaryProps> {
     super(props);
 
     this.props.actions.getInitialData();
+  }
+  getLinkElement(revisionInfo:IRevisionInfo): React.ReactElement<any>
+  {
+    if(revisionInfo.link !== "" && revisionInfo.link !== null && revisionInfo.link !== undefined)
+    {
+      return (<a href={revisionInfo.link} target="_blank"><LaunchIcon color="gray" /></a>);
+    }
+    else
+    {
+      return(<div></div>);
+    }
   }
   render() {
     return (
@@ -78,7 +91,7 @@ class Summary extends Component<ISummaryProps> {
             {this.props.originalData.revisionInfos.map(revisionInfo=>{
               return (
                 <TableRow key={`rev_${revisionInfo.id}`} selected={revisionInfo.id === this.props.selectedRevisionId}>
-                  <TableRowColumn><Link to={`/issues/${revisionInfo.id}`}>{revisionInfo.id}</Link></TableRowColumn>
+                  <TableRowColumn><Link to={`/issues/${revisionInfo.id}`}>{revisionInfo.id}</Link>{this.getLinkElement(revisionInfo)}</TableRowColumn>
                   <TableRowColumn>{revisionInfo.caption}</TableRowColumn>
                   <TableRowColumn>
                     <Link to={`/issues/${revisionInfo.id}/`}>{revisionInfo.current.errorIssuesCount + revisionInfo.current.warningIssuesCount+ revisionInfo.current.suggestionIssuesCount + revisionInfo.current.hintIssuesCount}</Link>

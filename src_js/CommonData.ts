@@ -28,6 +28,7 @@ export interface IRevisionInfo{
   id:string;
   caption:string;
   issueCount:number;
+  link:string;
   current?:RevisionIssuesInfo;
   incresedFromPrevious?:RevisionIssuesInfo;
   incresedFromFirst?:RevisionIssuesInfo;
@@ -39,7 +40,8 @@ export namespace IRevisionInfo{
   export let Empty:IRevisionInfo = {
     id:"",
     caption:"",
-    issueCount:0
+    issueCount:0,
+    link:""
   };
 }
 
