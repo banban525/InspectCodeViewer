@@ -16,10 +16,10 @@ namespace ParseInspectedCodes
         [Option('b', "base", Required = false, HelpText = "base directory to seach source codes.")]
         public string ProgramBaseDirectory { get; set; }
 
-        [Option('t', "title", Required = false, HelpText = "")]
+        [Option('t', "title", Required = false, HelpText = "revision title")]
         public string Title { get; set; }
 
-        [Option('l', "link", Required = false, HelpText = "")]
+        [Option('l', "link", Required = false, HelpText = "url to a revision in repository")]
         public string Link { get; set; }
 
         [HelpOption]
@@ -27,11 +27,7 @@ namespace ParseInspectedCodes
         {
             var help = new CommandLine.Text.HelpText {AddDashesToOption = true};
 
-            help.AddPreOptionsLine("Usage: InspectCodeVisualizer.exe -i <InspectCode Result file>");
-            help.AddPreOptionsLine("");
             help.AddPreOptionsLine("Usage: InspectCodeVisualizer.exe -i <InspectCode Result file> -b <source code base directory>");
-            help.AddPreOptionsLine("");
-            help.AddPreOptionsLine("Usage: InspectCodeVisualizer.exe -i <InspectCode Result file> -o <\"revisions\" directory>");
             help.AddPreOptionsLine("");
             help.AddPreOptionsLine("option:");
             help.AddOptions(this);
