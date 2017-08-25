@@ -13,12 +13,20 @@
     "baseUrl": ".",
     "paths": {
       "recharts": ["types/recharts/index.d.ts"]
-    }
+    },
+    "lib": [
+      "dom",
+      "es2015"
+    ]
   },
   "file": [
     "./src_js/Index.tsx"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "bin",
+    "dist",
+    "demo",
+    "src_html"
   ]
 }

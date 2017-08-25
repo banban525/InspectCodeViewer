@@ -16,12 +16,12 @@ module.exports = function(config) {
     // list of files / patterns to load in the browser
     files: [
       './src_js/*.spec.js',
-      './src_js/*.spec.js'
+      './src_js/*.spec.ts'
     ],
 
     preprocessors: {
-      './src_js/*.spec.js': ['coverage','webpack', 'sourcemap'],
-      './src_js/*.spec.ts': ['coverage','webpack', 'sourcemap']
+      './src_js/*.spec.js': ['webpack', 'sourcemap'],
+      './src_js/*.spec.ts': ['webpack', 'sourcemap']
     },
 
     webpack: {
@@ -32,14 +32,6 @@ module.exports = function(config) {
       },
       module: {
         rules: [
-          {
-            enforce:"pre",
-            test: /\.js$/,
-            exclude: /(node_modules)/,
-            use: [
-              {loader: "istanbul-instrumenter-loader"}
-            ]
-          },
           {
             test: /\.tsx?$/,
             use: [

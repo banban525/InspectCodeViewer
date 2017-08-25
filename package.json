@@ -65,5 +65,9 @@
     "typescript": "^2.3.4",
     "url-loader": "^0.5.9",
     "webpack": "^2.6.1"
+  },
+  "dependencies": {
+    "@types/sinon": "^2.3.3",
+    "sinon": "^3.2.1"
   }
 }
