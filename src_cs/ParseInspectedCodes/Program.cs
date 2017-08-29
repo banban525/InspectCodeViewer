@@ -453,7 +453,7 @@ namespace ParseInspectedCodes
         [DataMember(Name = "fixedFromFirst", Order = 9)]
         public RevisionIssuesInfo FixedFromFirst { get; private set; }
 
-        [DataMember(Name ="Link", Order = 10)]
+        [DataMember(Name ="link", Order = 10)]
         public string Link { get; private set; }
 
     }
