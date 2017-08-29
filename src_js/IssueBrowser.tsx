@@ -407,12 +407,12 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
                 floatingLabelText="Revisions"
                 value={this.props.selectedRevision.id}
                 onChange={(event:any, index:number, value:string)=>this.props.actions.onChangedRevision(index)}
-                style={{height:"72px"}}>
+                style={{height:"72px",width:(this.props.hostWidth*0.4*0.6) + "px"}}>
               {this.props.revisions.revisionInfos.map(revision=>{
                 return (<MenuItem 
                   key={"Revision_" + revision.id}
                   value={revision.id} 
-                  primaryText={revision.id} 
+                  primaryText={`${revision.id} (${revision.caption})`} 
                   rightAvatar={<Badge badgeContent={revision.issueCount} primary={true}/>} />)
               })}
               </SelectField>
@@ -422,7 +422,8 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
                 floatingLabelText="Issues filter"
                 value={this.props.diffMode}
                 onChange={(event:any, index:number, value:number)=>this.props.actions.onChangeDiffMode(value)}
-                style={{height:"72px"}}
+                style={{height:"72px",width:(this.props.hostWidth*0.4*0.4) + "px"}}
+                
               >
                 <MenuItem value={0} primaryText="All issues" />
                 <MenuItem value={1} primaryText="Incresed issues from previous revision" />
@@ -444,7 +445,6 @@ class IssueBrowser extends Component<IIssueBrowserProps> {
               >
                 <MenuItem value={1} primaryText="Directory and File" />
                 <MenuItem value={2} primaryText="Issue Type" />
-                <MenuItem value={3} primaryText="Issue Category" />
               </SelectField>
 
               <FlatButton 
