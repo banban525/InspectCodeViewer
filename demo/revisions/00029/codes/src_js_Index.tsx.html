@@ -1,0 +1,166 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Code Viewer</title>
+  <link id="codestyle" rel="stylesheet" type="text/css" href="../../../css/theme.css" media="all" />
+  <script type="text/javascript" src="../../../js/syntaxhighlighter.js"></script>
+  <style>
+    .syntaxhighlighter {
+      overflow-y: hidden !important;
+    }
+  </style>
+</head>
+<body>
+<pre id="code" class="brush: csharp">import * as React from &apos;react&apos;;
+import *  as ReactDOM from &quot;react-dom&quot;;
+import { createStore, combineReducers,compose,applyMiddleware  } from &quot;redux&quot;;
+import { Provider,connect } from &quot;react-redux&quot;;
+import * as injectTapEventPlugin from &quot;react-tap-event-plugin&quot;;
+import {
+  HashRouter as Router,
+  Route,
+  Link,
+  withRouter,
+  Switch,
+  Redirect
+} from &apos;react-router-dom&apos;
+import * as objectAssign from &apos;object-assign&apos;;
+
+import App from &quot;./App&quot;;
+import {IAppProps} from &quot;./App&quot;;
+import {appReducer as AppReducer, AppActionDispatcher,IAppState} from &quot;./AppReducer&quot;
+import IssueBrowser from &apos;./IssueBrowser&apos;;
+import {IssueBrowserReducer, IssueBrowserActionDispatcher, IIssueBrowserState} from &quot;./IssueBrowserReducer&quot;;
+import {IIssueBrowserProps} from &apos;./IssueBrowser&apos;;
+import {RouteComponentProps} from &apos;react-router-dom&apos;;
+import * as H from &apos;history&apos;;
+import Summary from &apos;./Summary&apos;;
+import {ISummaryProps} from &apos;./Summary&apos;;
+import {SummaryReducer,SummaryActionDispatcher,ISummaryState} from &apos;./SummaryReducer&apos;;
+
+const rootReducer = combineReducers({ AppReducer,IssueBrowserReducer,SummaryReducer });
+const store = createStore(rootReducer);
+
+store.subscribe(() =&gt; console.log(store.getState()));
+
+
+
+
+declare var __data: any;
+var isScriptBlockWorking = false;
+var ajaxQueue:any[] = [];
+function myAjax(url:string, onRecieved:(data:any)=&gt;void):void {
+  if(isScriptBlockWorking)
+  {
+    ajaxQueue.push({
+      url:url,
+      onRecieved:onRecieved
+    });
+    return;
+  }
+  isScriptBlockWorking = true;
+  var s:any = document.createElement(&quot;script&quot;);
+  s.src = url;
+  s.onload = () =&gt; {
+    onRecieved(__data);
+    isScriptBlockWorking = false;
+    if(ajaxQueue.length !== 0){
+      var command = ajaxQueue.pop();
+      myAjax(command.url, command.onRecieved);
+    }
+  }
+
+  var ele = document.getElementById(&quot;script&quot;);
+  ele.appendChild(s);
+}
+
+function mapAppStateToProps(state : any, ownProps:RouteComponentProps&lt;any&gt;):IAppProps {
+  var result = objectAssign({}, state.AppReducer, {history:ownProps.history}) as IAppProps;
+  return result;
+}
+
+function mapAppDispatchToProps(dispatch: any):any {
+  return {
+    actions:new AppActionDispatcher(dispatch, ()=&gt;(store.getState() as any).AppReducer as IAppState)
+  }
+}
+
+function mapIssueBrowserStateToProps(state : any, ownProps:RouteComponentProps&lt;any&gt;):IIssueBrowserProps {
+  return objectAssign(
+    {},
+    state.IssueBrowserReducer, 
+    {
+      hostWidth:state.AppReducer.hostWidth, 
+      hostHeight:state.AppReducer.hostHeight,
+      selectedThermaId:state.AppReducer.selectedThermaId
+    },
+    ownProps);
+}
+
+function mapIssueBrowserDispatchToProps(dispatch: any):any {
+  return {
+    actions:new IssueBrowserActionDispatcher(dispatch, ()=&gt;(store.getState() as any).IssueBrowserReducer as IIssueBrowserState, myAjax)
+  }
+}
+
+function mapSummaryStateToProps(state : any, ownProps:RouteComponentProps&lt;any&gt;):ISummaryProps {
+  return objectAssign(
+    {},
+    state.SummaryReducer,
+    {
+      hostWidth:state.AppReducer.hostWidth, 
+      hostHeight:state.AppReducer.hostHeight
+    },
+    ownProps);
+}
+
+function mapSummaryDispatchToProps(dispatch: any):any {
+  return {
+    actions:new SummaryActionDispatcher(dispatch, ()=&gt;(store.getState() as any).SummaryReducer as ISummaryState, myAjax)
+  }
+}
+
+
+
+
+var SummaryTemp = connect(
+  mapSummaryStateToProps,
+  mapSummaryDispatchToProps)(Summary);
+var SummaryContainer = withRouter(SummaryTemp);
+
+
+var AppContainer = connect(
+  mapAppStateToProps,
+  mapAppDispatchToProps)(App)
+var AppComponent = withRouter(AppContainer) as React.ComponentClass&lt;any&gt;;
+
+var IssueBrowserContainer = withRouter(connect(
+  mapIssueBrowserStateToProps,
+  mapIssueBrowserDispatchToProps)(IssueBrowser));
+
+
+
+injectTapEventPlugin();
+
+ReactDOM.render(
+    &lt;Provider store={store}&gt;
+      &lt;Router&gt;
+        &lt;AppComponent&gt;
+          &lt;Switch&gt;
+            &lt;Route exact path=&quot;/&quot; component={SummaryContainer}/&gt;
+            &lt;Route exact path=&quot;/issues/:revid/:issueid/&quot; component={IssueBrowserContainer}/&gt;
+            &lt;Route exact path=&quot;/issues/:revid/&quot; component={IssueBrowserContainer}/&gt;
+            &lt;Route exact path=&quot;/issues&quot; component={IssueBrowserContainer}/&gt;
+          &lt;/Switch&gt;
+        &lt;/AppComponent&gt;
+      &lt;/Router&gt;
+    &lt;/Provider&gt;
+    ,document.getElementById(&quot;app&quot;)
+);
+
+</pre>
+  <script type="text/javascript" src="../../../js/code.js">
+  </script>
+</body>
+</html>

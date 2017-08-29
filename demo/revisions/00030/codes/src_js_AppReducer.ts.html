@@ -1,0 +1,94 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Code Viewer</title>
+  <link id="codestyle" rel="stylesheet" type="text/css" href="../../../css/theme.css" media="all" />
+  <script type="text/javascript" src="../../../js/syntaxhighlighter.js"></script>
+  <style>
+    .syntaxhighlighter {
+      overflow-y: hidden !important;
+    }
+  </style>
+</head>
+<body>
+<pre id="code" class="brush: javascript">import * as objectAssign from &apos;object-assign&apos;;
+
+
+export interface IAppState{
+  hostWidth?:number;
+  hostHeight?:number;
+  selectedThermaId?:number;
+  isDrawerOpened?:boolean;
+}
+
+export class AppActionDispatcher
+{
+  dispatch: (action:any)=&gt;any;
+  getState: ()=&gt;IAppState;
+  constructor(dispatch:(action:any)=&gt;any, getState: ()=&gt;IAppState)
+  {
+    this.dispatch = dispatch;
+    this.getState = getState;
+  }
+  onResized():any{
+    this.dispatch( {type:&quot;onResized&quot;});
+  }
+  onChangedThema(value:number):void{
+    this.dispatch( {type:&quot;onChangedThema&quot;, value:value});
+  }
+  onChangeDrawerOpened(isOpened:boolean):void{
+    this.dispatch({type:&apos;onChangeDrawerOpened&apos;, isOpened:isOpened});
+  }
+  onOpenSummaryPage():void{
+    this.dispatch({type:&apos;onOpenSummaryPage&apos;});
+  }
+  onOpenIssueBrowerPage():void{
+    this.dispatch({type:&apos;onOpenIssueBrowerPage&apos;});
+  }
+}
+
+let storedThemeId = 0
+if( typeof localStorage != &quot;undefined&quot; )
+{
+  storedThemeId = Number(localStorage[&quot;InspectCodeViewer.themaId&quot;] || 0)
+}
+
+const initialAppState: IAppState = {
+  hostWidth:window.innerWidth, 
+  hostHeight:window.innerHeight,
+  selectedThermaId:storedThemeId,
+  isDrawerOpened:false
+};
+
+
+export function appReducer(state: IAppState = initialAppState, action: any) {
+  switch (action.type) 
+  {
+  case &apos;onResized&apos;:
+    document.getElementById(&quot;app&quot;).style.height = window.innerHeight.toString() + &quot;px&quot;;
+    return objectAssign({}, state, {hostWidth:window.innerWidth, hostHeight:window.innerHeight});
+  case &apos;onChangedThema&apos;:
+    if( typeof localStorage != &quot;undefined&quot; )
+    {
+      localStorage[&quot;InspectCodeViewer.themaId&quot;] = action.value;
+    }
+    return objectAssign({}, state,{selectedThermaId:action.value});
+  case &apos;onChangeDrawerOpened&apos;:
+    return objectAssign({}, state,{isDrawerOpened:action.isOpened});
+  case &apos;onOpenSummaryPage&apos;:
+    return objectAssign({}, state,{isDrawerOpened:false});
+  case &apos;onOpenIssueBrowerPage&apos;:
+    return objectAssign({}, state,{isDrawerOpened:false});
+  default:
+    return state;
+  }
+}
+
+
+
+</pre>
+  <script type="text/javascript" src="../../../js/code.js">
+  </script>
+</body>
+</html>

@@ -31,6 +31,8 @@ import {blue500, red500, green500, lime500} from &apos;material-ui/styles/colors
 export interface ISummaryProps extends ISummaryState,RouteComponentProps&lt;any&gt;
 {
   actions?:SummaryActionDispatcher;
+  hostWidth?:number;
+  hostHeight?:number;
 }
 
 class Summary extends Component&lt;ISummaryProps&gt; {
@@ -43,19 +45,19 @@ class Summary extends Component&lt;ISummaryProps&gt; {
     return (
       &lt;div&gt;
         &lt;AreaChart 
-          width={600}
-          height={400}
+          width={this.props.hostWidth/2}
+          height={(this.props.hostHeight-64)/2-32}
           data={this.props.originalData.revisionInfos}
         &gt;
           &lt;XAxis dataKey=&quot;id&quot;/&gt;
           &lt;YAxis/&gt;
           &lt;CartesianGrid strokeDasharray=&quot;3 3&quot;/&gt;
-          &lt;Area type=&apos;monotone&apos; dataKey=&apos;current.hintIssuesCount&apos; stackId=&quot;1&quot; stroke=&apos;#ffc658&apos; fill={blue500} /&gt;
-          &lt;Area type=&apos;monotone&apos; dataKey=&apos;current.suggestionIssuesCount&apos; stackId=&quot;1&quot; stroke=&apos;#ffc658&apos; fill={green500} /&gt;
-          &lt;Area type=&apos;monotone&apos; dataKey=&apos;current.warningIssuesCount&apos; stackId=&quot;1&quot; stroke=&apos;#82ca9d&apos; fill={lime500} /&gt;
           &lt;Area type=&apos;monotone&apos; dataKey=&apos;current.errorIssuesCount&apos; stackId=&quot;1&quot; stroke=&apos;#8884d8&apos; fill={red500} /&gt;
+          &lt;Area type=&apos;monotone&apos; dataKey=&apos;current.warningIssuesCount&apos; stackId=&quot;1&quot; stroke=&apos;#82ca9d&apos; fill={lime500} /&gt;
+          &lt;Area type=&apos;monotone&apos; dataKey=&apos;current.suggestionIssuesCount&apos; stackId=&quot;1&quot; stroke=&apos;#ffc658&apos; fill={green500} /&gt;
+          &lt;Area type=&apos;monotone&apos; dataKey=&apos;current.hintIssuesCount&apos; stackId=&quot;1&quot; stroke=&apos;#ffc658&apos; fill={blue500} /&gt;
         &lt;/AreaChart&gt;
-        &lt;Table height=&quot;600px&quot;&gt;
+        &lt;Table height={((this.props.hostHeight-64)/2-32) + &quot;px&quot;}&gt;
           &lt;TableHeader&gt;
             &lt;TableRow&gt;
               &lt;TableHeaderColumn&gt;ID&lt;/TableHeaderColumn&gt;

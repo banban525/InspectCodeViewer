@@ -1,0 +1,56 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Code Viewer</title>
+  <link id="codestyle" rel="stylesheet" type="text/css" href="../../../css/theme.css" media="all" />
+  <script type="text/javascript" src="../../../js/syntaxhighlighter.js"></script>
+  <style>
+    .syntaxhighlighter {
+      overflow-y: hidden !important;
+    }
+  </style>
+</head>
+<body>
+<pre id="code" class="brush: csharp">using CommandLine;
+
+namespace InspectCodeVisualizer
+{
+    class Options
+    {
+        [Option(&apos;i&apos;, &quot;input&quot;, Required = true, HelpText = &quot;set a InspectCode result file&quot;)]
+        public string Input { get; set; }
+
+        [Option(&quot;id&quot;, Required = false, HelpText = &quot;&quot;)]
+        public string Id { get; set; }
+
+        [Option(&apos;o&apos;, &quot;output&quot;, Required = true, HelpText = &quot;&quot;)]
+        public string OutputDirectory { get; set; }
+
+        [Option(&apos;b&apos;, &quot;base&quot;, Required = true, HelpText = &quot;&quot;)]
+        public string ProgramBaseDirectory { get; set; }
+
+        [Option(&apos;t&apos;, &quot;title&quot;, Required = false, HelpText = &quot;&quot;)]
+        public string Title { get; set; }
+
+        [HelpOption]
+        public string GetUsage()
+        {
+            var help = new CommandLine.Text.HelpText {AddDashesToOption = true};
+
+            help.AddPreOptionsLine(&quot;Usage: InspectCodeVisualizer.exe -i &lt;InspectCode Result file&gt; -o &lt;output directory&gt;&quot;);
+            help.AddPreOptionsLine(&quot;&quot;);
+            help.AddPreOptionsLine(&quot;option:&quot;);
+            help.AddOptions(this);
+
+
+            return help;
+        }
+    }
+}
+
+</pre>
+  <script type="text/javascript" src="../../../js/code.js">
+  </script>
+</body>
+</html>

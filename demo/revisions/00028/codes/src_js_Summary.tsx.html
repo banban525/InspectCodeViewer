@@ -1,0 +1,145 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Code Viewer</title>
+  <link id="codestyle" rel="stylesheet" type="text/css" href="../../../css/theme.css" media="all" />
+  <script type="text/javascript" src="../../../js/syntaxhighlighter.js"></script>
+  <style>
+    .syntaxhighlighter {
+      overflow-y: hidden !important;
+    }
+  </style>
+</head>
+<body>
+<pre id="code" class="brush: csharp">import * as React from &quot;react&quot;;
+import { Component } from &quot;react&quot;;
+import {SummaryActionDispatcher, ISummaryState} from &apos;./SummaryReducer&apos;
+import {RouteComponentProps} from &apos;react-router-dom&apos;;
+import {
+  Table,
+  TableBody,
+  TableFooter,
+  TableHeader,
+  TableHeaderColumn,
+  TableRow,
+  TableRowColumn,
+} from &apos;material-ui/Table&apos;;
+import {AreaChart, XAxis, YAxis, CartesianGrid, Tooltip, Area,ComposedChart,Bar,ReferenceLine} from &apos;recharts&apos;;
+import {blue500, red500, green500, lime500} from &apos;material-ui/styles/colors&apos;;
+import {Link} from &apos;react-router-dom&apos;;
+
+export interface ISummaryProps extends ISummaryState,RouteComponentProps&lt;any&gt;
+{
+  actions?:SummaryActionDispatcher;
+  hostWidth?:number;
+  hostHeight?:number;
+}
+
+class Summary extends Component&lt;ISummaryProps&gt; {
+  constructor(props: ISummaryProps) {
+    super(props);
+
+    this.props.actions.getInitialData();
+  }
+  render() {
+    return (
+      &lt;div&gt;
+        &lt;ComposedChart 
+          width={this.props.hostWidth/2}
+          height={(this.props.hostHeight-64)/2-32}
+          data={this.props.originalData.revisionInfos}
+        &gt;
+          &lt;XAxis dataKey=&quot;id&quot;/&gt;
+          &lt;YAxis/&gt;
+          &lt;Tooltip labelStyle={{color:&quot;gray&quot;}}/&gt;
+          &lt;CartesianGrid strokeDasharray=&quot;3 3&quot;/&gt;
+          &lt;ReferenceLine 
+            x={this.props.selectedRevisionId} 
+            stroke=&quot;green&quot; 
+            isFront={true} /&gt;
+          {/*&lt;Bar dataKey=&quot;current.warningIssuesCount&quot; barSize={10} fill=&quot;#413e00&quot; /&gt;*/}
+          &lt;Area type=&apos;monotone&apos; name=&quot;error&quot;      dataKey=&apos;current.errorIssuesCount&apos; stackId=&quot;1&quot; stroke=&apos;#8884d8&apos; fill={red500} /&gt;
+          &lt;Area type=&apos;monotone&apos; name=&quot;warning&quot;    dataKey=&apos;current.warningIssuesCount&apos; stackId=&quot;1&quot; stroke=&apos;#82ca9d&apos; fill={lime500} /&gt;
+          &lt;Area type=&apos;monotone&apos; name=&quot;suggestion&quot; dataKey=&apos;current.suggestionIssuesCount&apos; stackId=&quot;1&quot; stroke=&apos;#ffc658&apos; fill={green500} /&gt;
+          &lt;Area type=&apos;monotone&apos; name=&quot;hint&quot;       dataKey=&apos;current.hintIssuesCount&apos; stackId=&quot;1&quot; stroke=&apos;#ffc658&apos; fill={blue500} /&gt;
+        &lt;/ComposedChart&gt;
+        &lt;Table 
+          height={((this.props.hostHeight-64)/2-32) + &quot;px&quot;} 
+          onRowSelection={(selectedRows:number[])=&gt;{
+            if(selectedRows.length !== 0)
+            {
+              this.props.actions.onChangeSelectedRevisionId(this.props.originalData.revisionInfos[selectedRows[0]].id);
+            }
+            else
+            {
+              this.props.actions.onChangeSelectedRevisionId(&quot;&quot;);
+            }
+            }}
+            &gt;
+          &lt;TableHeader&gt;
+            &lt;TableRow&gt;
+              &lt;TableHeaderColumn&gt;ID&lt;/TableHeaderColumn&gt;
+              &lt;TableHeaderColumn&gt;Caption&lt;/TableHeaderColumn&gt;
+              &lt;TableHeaderColumn&gt;Total&lt;/TableHeaderColumn&gt;
+              &lt;TableHeaderColumn&gt;Error&lt;/TableHeaderColumn&gt;
+              &lt;TableHeaderColumn&gt;Warning&lt;/TableHeaderColumn&gt;
+              &lt;TableHeaderColumn&gt;Suggestion&lt;/TableHeaderColumn&gt;
+              &lt;TableHeaderColumn&gt;Hint&lt;/TableHeaderColumn&gt;
+            &lt;/TableRow&gt;
+          &lt;/TableHeader&gt;
+          &lt;TableBody&gt;
+            {this.props.originalData.revisionInfos.map(revisionInfo=&gt;{
+              return (
+                &lt;TableRow key={`rev_${revisionInfo.id}`} selected={revisionInfo.id === this.props.selectedRevisionId}&gt;
+                  &lt;TableRowColumn&gt;&lt;Link to={`/issues/${revisionInfo.id}`}&gt;{revisionInfo.id}&lt;/Link&gt;&lt;/TableRowColumn&gt;
+                  &lt;TableRowColumn&gt;{revisionInfo.caption}&lt;/TableRowColumn&gt;
+                  &lt;TableRowColumn&gt;
+                    &lt;Link to={`/issues/${revisionInfo.id}/`}&gt;{revisionInfo.current.errorIssuesCount + revisionInfo.current.warningIssuesCount+ revisionInfo.current.suggestionIssuesCount + revisionInfo.current.hintIssuesCount}&lt;/Link&gt;
+                  &lt;/TableRowColumn&gt;
+                  &lt;TableRowColumn&gt;
+                    &lt;Link to={`/issues/${revisionInfo.id}?hidefilter=warning,suggestion,hint`}&gt;{revisionInfo.current.errorIssuesCount}&lt;/Link&gt;
+                    &lt;span style={{marginLeft:&quot;1em&quot;}}/&gt;
+                    ( &lt;Link to={`/issues/${revisionInfo.id}?hidefilter=warning,suggestion,hint&amp;diff=incresedFromPrevious`}&gt;+{revisionInfo.incresedFromPrevious.errorIssuesCount}&lt;/Link&gt;
+                    &lt;span style={{marginLeft:&quot;1em&quot;}}/&gt;
+                    &lt;Link to={`/issues/${revisionInfo.id}?hidefilter=warning,suggestion,hint&amp;diff=fixedFromPrevious`}&gt;-{revisionInfo.fixedFromPrevious.errorIssuesCount}&lt;/Link&gt; )
+                  &lt;/TableRowColumn&gt;
+                  &lt;TableRowColumn&gt;
+                    &lt;Link to={`/issues/${revisionInfo.id}?hidefilter=error,suggestion,hint`}&gt;{revisionInfo.current.warningIssuesCount}&lt;/Link&gt;
+                    &lt;span style={{marginLeft:&quot;1em&quot;}}/&gt;
+                    ( &lt;Link to={`/issues/${revisionInfo.id}?hidefilter=error,suggestion,hint&amp;diff=incresedFromPrevious`}&gt;+{revisionInfo.incresedFromPrevious.warningIssuesCount}&lt;/Link&gt;
+                    &lt;span style={{marginLeft:&quot;1em&quot;}}/&gt;
+                    &lt;Link to={`/issues/${revisionInfo.id}?hidefilter=error,suggestion,hint&amp;diff=fixedFromPrevious`}&gt;-{revisionInfo.fixedFromPrevious.warningIssuesCount}&lt;/Link&gt; )
+                  &lt;/TableRowColumn&gt;
+                  &lt;TableRowColumn&gt;
+                    &lt;Link to={`/issues/${revisionInfo.id}?hidefilter=error,warning,hint`}&gt;{revisionInfo.current.suggestionIssuesCount}&lt;/Link&gt;
+                    &lt;span style={{marginLeft:&quot;1em&quot;}}/&gt;
+                    ( &lt;Link to={`/issues/${revisionInfo.id}?hidefilter=error,warning,hint&amp;diff=incresedFromPrevious`}&gt;+{revisionInfo.incresedFromPrevious.suggestionIssuesCount}&lt;/Link&gt;
+                    &lt;span style={{marginLeft:&quot;1em&quot;}}/&gt;
+                    &lt;Link to={`/issues/${revisionInfo.id}?hidefilter=error,warning,hint`}&gt;-{revisionInfo.fixedFromPrevious.suggestionIssuesCount}&lt;/Link&gt; )
+                  &lt;/TableRowColumn&gt;
+                  &lt;TableRowColumn&gt;
+                    &lt;Link to={`/issues/${revisionInfo.id}?hidefilter=error,warning,suggestion`}&gt;{revisionInfo.current.hintIssuesCount}&lt;/Link&gt;
+                    &lt;span style={{marginLeft:&quot;1em&quot;}}/&gt;
+                    ( &lt;Link to={`/issues/${revisionInfo.id}?hidefilter=error,warning,suggestion&amp;diff=incresedFromPrevious`}&gt;+{revisionInfo.incresedFromPrevious.hintIssuesCount}&lt;/Link&gt;
+                    &lt;span style={{marginLeft:&quot;1em&quot;}}/&gt;
+                    &lt;Link to={`/issues/${revisionInfo.id}?hidefilter=error,warning,suggestion&amp;diff=fixedFromPrevious`}&gt;-{revisionInfo.fixedFromPrevious.hintIssuesCount}&lt;/Link&gt; )
+                  &lt;/TableRowColumn&gt;
+                &lt;/TableRow&gt;
+              );
+            })}
+
+          &lt;/TableBody&gt;
+        &lt;/Table&gt;
+      &lt;/div&gt;
+      );
+  }
+}
+
+export default Summary;
+
+</pre>
+  <script type="text/javascript" src="../../../js/code.js">
+  </script>
+</body>
+</html>

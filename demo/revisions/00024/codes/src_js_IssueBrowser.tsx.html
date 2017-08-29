@@ -1,0 +1,598 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Code Viewer</title>
+  <link id="codestyle" rel="stylesheet" type="text/css" href="../../../css/theme.css" media="all" />
+  <script type="text/javascript" src="../../../js/syntaxhighlighter.js"></script>
+  <style>
+    .syntaxhighlighter {
+      overflow-y: hidden !important;
+    }
+  </style>
+</head>
+<body>
+<pre id="code" class="brush: csharp">import * as React from &quot;react&quot;;
+import { Component } from &quot;react&quot;;
+import SelectField from &apos;material-ui/SelectField&apos;;
+import MenuItem from &apos;material-ui/MenuItem&apos;;
+import getMuiTheme from &quot;material-ui/styles/getMuiTheme&quot;;
+import MuiThemeProvider from &quot;material-ui/styles/MuiThemeProvider&quot;;
+import * as injectTapEventPlugin from &quot;react-tap-event-plugin&quot;;
+import { SelectableList } from &quot;./SelectableList&quot;;
+import Subheader from &apos;material-ui/Subheader&apos;;
+import { ListItem } from &quot;material-ui/List&quot;;
+import Iframe from &apos;../node_modules/react-iframe/index.min.js&apos;;
+import * as objectAssign from &apos;object-assign&apos;;
+import darkBaseTheme from &apos;material-ui/styles/baseThemes/darkBaseTheme&apos;;
+import lightBaseTheme from &apos;material-ui/styles/baseThemes/lightBaseTheme&apos;;
+import Paper from &apos;material-ui/Paper&apos;;
+import AppBar from &apos;material-ui/AppBar&apos;;
+import Badge from &apos;material-ui/Badge&apos;;
+import { BootstrapTable, TableHeaderColumn, Options,SelectRow,SelectRowMode } from &quot;react-bootstrap-table&quot;;
+import &quot;jquery&quot;;
+import WarningIcon from &apos;material-ui/svg-icons/alert/warning&apos;;
+import ErrorIcon from &apos;material-ui/svg-icons/alert/error&apos;;
+import InfoIcon from &apos;material-ui/svg-icons/action/info&apos;;
+import SettingsIcon from &apos;material-ui/svg-icons/action/settings&apos;;
+import FilterListIcon from &apos;material-ui/svg-icons/content/filter-list&apos;;
+import ArrowUpIcon from &apos;material-ui/svg-icons/navigation/arrow-drop-up&apos;;
+import ArrowDownIcon from &apos;material-ui/svg-icons/navigation/arrow-drop-down&apos;;
+import muiThemeable from &apos;material-ui/styles/muiThemeable&apos;;
+import {MuiTheme} from &apos;material-ui/styles&apos;;
+import {Toolbar, ToolbarGroup, ToolbarSeparator, ToolbarTitle} from &apos;material-ui/Toolbar&apos;;
+import IconButton from &apos;material-ui/IconButton&apos;;
+import Dialog from &apos;material-ui/Dialog&apos;;
+import FlatButton from &apos;material-ui/FlatButton&apos;;
+import FloatingActionButton from &apos;material-ui/FloatingActionButton&apos;;
+import Popover from &apos;material-ui/Popover&apos;;
+import Menu from &apos;material-ui/Menu&apos;;
+import DropDownMenu from &apos;material-ui/DropDownMenu&apos;;
+
+import {blue500, red500, green500, lime500} from &apos;material-ui/styles/colors&apos;;
+import {IssueGroupByTypes, IInspectResultsSummary,IIssue,IIssueType,IOriginalData,IssueSeverity} from &apos;./CommonData&apos;;
+import { IIssueBrowserState,IssueIconType,IGroup,IItem,IssueBrowserActionDispatcher,DiffMode} from &apos;./IssueBrowserReducer&apos;;
+import {RouteComponentProps} from &apos;react-router-dom&apos;;
+import * as querystring from &apos;query-string&apos;;
+import {LocationDescriptorObject} from &apos;history&apos;;
+
+var thema = lightBaseTheme;
+
+export interface IIssueBrowserProps extends IIssueBrowserState,RouteComponentProps&lt;any&gt;
+{
+  actions:IssueBrowserActionDispatcher;
+  hostWidth?:number;
+  hostHeight?:number;
+  selectedThermaId?:number;
+  muiThema?: MuiTheme;
+}
+
+class IssueBrowser extends Component&lt;IIssueBrowserProps&gt; {
+  constructor(props: IIssueBrowserProps) {
+    super(props);
+    this.expandComponent = this.expandComponent.bind(this);
+    this.formatIssuGroup = this.formatIssuGroup.bind(this);
+    this.createIssueTreeElement = this.createIssueTreeElement.bind(this);
+    this.createIssueGroupElement = this.createIssueGroupElement.bind(this);
+    this.createIssueElement = this.createIssueElement.bind(this);
+    this.createExpandComponent = this.createExpandComponent.bind(this);
+
+    var queyparameters = this.props.location.search
+    var revisionId = this.props.match.params.revid;
+    var parsed  = querystring.parse(queyparameters)
+    if(parsed.hidefilter !== undefined)
+    {
+      var hideStr:string = parsed.hidefilter;
+      var hideList = hideStr.split(&quot;,&quot;);
+      this.props.actions.setIssuesFilter(
+        hideStr.indexOf(&quot;error&quot;) &lt; 0,
+        hideStr.indexOf(&quot;warning&quot;) &lt; 0,
+        hideStr.indexOf(&quot;suggestion&quot;) &lt; 0,
+        hideStr.indexOf(&quot;hint&quot;) &lt; 0
+      );
+    }
+    if(parsed.diff !== undefined)
+    {
+      var diffStr:string = parsed.diff;
+      if(diffStr === &quot;incresedFromPrevious&quot;)
+      {
+        this.props.actions.onChangeDiffMode(DiffMode.IncresedFromPrevious);
+      }
+      else if(diffStr === &apos;fixedFromPrevious&apos;)
+      {
+        this.props.actions.onChangeDiffMode(DiffMode.FixedFromPrevious);
+      }
+      else if(diffStr === &apos;incresedFromFirst&apos;)
+      {
+        this.props.actions.onChangeDiffMode(DiffMode.IncresedFromFirst);
+      }
+      else if(diffStr === &apos;fixedFromFirst&apos;)
+      {
+        this.props.actions.onChangeDiffMode(DiffMode.FixedFromFirst);
+      }
+      else
+      {
+        this.props.actions.onChangeDiffMode(DiffMode.Normal);
+      }
+    }
+    else
+    {
+        this.props.actions.onChangeDiffMode(DiffMode.Normal);
+    }
+    if(this.props.revisions.revisionInfos.length === 0)
+    {
+      this.props.actions.getInitialData();
+    }
+    if(revisionId)
+    {
+      this.props.actions.onChangedRevisionId(revisionId);
+    }
+  }
+
+
+  createIssueTreeListItem(tree: IGroup): JSX.Element[]
+  {
+    return tree.subGroups.map(group=&gt;(
+      &lt;ListItem
+        value={group.id}
+        open={group.isOpen}
+        primaryText={group.name}
+        key={group.id}
+        rightAvatar={&lt;Badge badgeContent={group.badge} primary={true}/&gt;}
+        nestedItems={this.createIssueTreeListItem(group)}
+        onNestedListToggle={()=&gt;this.props.actions.onTouchTapListGroup(group)}
+        onTouchTap={()=&gt;this.props.actions.onTouchTapListGroup(group)} /&gt;
+    )).concat(tree.items.map(issue=&gt;(
+      &lt;ListItem
+        value={issue.id}
+        initiallyOpen={false}
+        primaryText={issue.name}
+        key={issue.id}
+        nestedItems={[]}
+       /&gt;)));
+  }
+
+  getCodePageUri():string
+  {
+    if(this.props.selectedRevision.id !== &quot;&quot; &amp;&amp; this.props.selectedIssue.file !== &quot;&quot;)
+    {
+       var result = `./revisions/${this.props.selectedRevision.id}/codes/`;
+       result += `${this.props.selectedIssue.file.replace(/\\/g, &quot;_&quot;)}.html`;
+       result += `?line=${this.props.selectedIssue.line}`;
+       if(this.props.selectedThermaId === 1)
+       {
+         result += &quot;&amp;therma=dark&quot;;
+       }
+       return result;
+    }
+    else
+    {
+      return &quot;./empty.html&quot;
+    }
+  }
+
+  toIconElement(icon: IssueIconType):any{
+    if(icon === IssueIconType.error)
+    {
+      return (&lt;ErrorIcon color={red500}/&gt;);
+    }
+    if(icon === IssueIconType.warning)
+    {
+      return (&lt;WarningIcon color={lime500}/&gt;);
+    }
+    if(icon === IssueIconType.suggestion)
+    {
+      return (&lt;InfoIcon color={green500}/&gt;);
+    }
+    if(icon === IssueIconType.hint)
+    {
+      return (&lt;InfoIcon color={blue500}/&gt;);
+    }
+    return (&lt;span/&gt;);
+  }
+  formatIssuGroup(cell:any, row:any):any {
+    var group = row as IGroup
+    
+    return (&lt;div&gt;
+      &lt;div style={{textAlign:&quot;left&quot; ,float:&quot;left&quot;}}&gt;{this.toIconElement(group.icon)}{cell}&lt;/div&gt;
+      &lt;div style={{textAlign:&quot;right&quot;}}&gt;
+        &lt;Badge
+          badgeContent={group.badge}
+          style={{ 
+            marginRight:&quot;12px&quot; ,
+            paddingBottom: &quot;0px&quot;
+            }}
+          primary={true}/&gt;&lt;/div&gt;
+    &lt;/div&gt;);
+  }
+
+  expandComponent(row:any):any{
+    var isLargeData = row.items.length &gt; 10;
+    return (
+      &lt;BootstrapTable 
+        data={ row.items }
+        striped
+        pagination={isLargeData}
+        selectRow={{
+          mode: &apos;radio&apos;,
+          bgColor: darkBaseTheme.palette.primary2Color,
+          hideSelectColumn: true,
+          clickToSelect: true,
+          onSelect: (row: any, isSelected: boolean, e: any)=&gt;{
+            this.props.actions.onSelectedIssue(row.id as string);
+            return false;
+          },
+          selected: [this.props.selectedIssueId]
+        }}
+        options={{
+          paginationPosition: &apos;top&apos;,
+          hideSizePerPage: true,
+          withFirstAndLast: false,
+          paginationPanel: this.createNavigationFactory(row.items.length)
+        } as Options}
+       &gt;
+        &lt;TableHeaderColumn isKey dataField=&apos;id&apos; hidden&gt;ID&lt;/TableHeaderColumn&gt;
+        &lt;TableHeaderColumn dataField=&apos;name&apos;&gt;&lt;/TableHeaderColumn&gt;
+      &lt;/BootstrapTable&gt;
+    );
+  }
+
+  createIssueElement(root:IGroup):any
+  {
+    var isLargeData = root.items.length &gt; 10;
+    return (
+      &lt;BootstrapTable 
+        data={ root.items }
+        striped
+        pagination={isLargeData}
+        selectRow={{
+          mode: &apos;radio&apos;,
+          bgColor: darkBaseTheme.palette.primary2Color,
+          hideSelectColumn: true,
+          clickToSelect: true,
+          onSelect: (row: any, isSelected: boolean, e: any)=&gt;{
+            this.props.actions.onSelectedIssue(row.id as string);
+            return false;
+          },
+          selected: [this.props.selectedIssueId]
+        }}
+        options={{
+          paginationPosition: &apos;top&apos;,
+          hideSizePerPage: true,
+          withFirstAndLast: false,
+          paginationPanel: this.createNavigationFactory(root.items.length)
+        } as Options}
+       &gt;
+        &lt;TableHeaderColumn isKey dataField=&apos;id&apos; hidden&gt;ID&lt;/TableHeaderColumn&gt;
+        &lt;TableHeaderColumn dataField=&apos;name&apos;&gt;&lt;/TableHeaderColumn&gt;
+      &lt;/BootstrapTable&gt;
+    );
+  }
+  createIssueGroupElement(root: IGroup):any{
+    var isLargeData = root.subGroups.length &gt; 10;
+    return (
+      &lt;BootstrapTable 
+        data={root.subGroups} 
+        striped
+        expandableRow={ (row)=&gt;true }
+        expandComponent={ this.createExpandComponent }
+        pagination={isLargeData}
+        options={{
+          paginationPosition: &apos;top&apos;,
+          paginationPanel: this.createNavigationFactory(root.subGroups.length),
+          expanding: root.expandedChildren
+          } as Options}
+        selectRow={{
+          mode:&apos;radio&apos;,
+          clickToSelect: true,
+          clickToExpand: true,
+          hideSelectColumn: true,
+          onSelect:(row: any, isSelected: boolean, e: any)=&gt;{
+            this.props.actions.onSelectedIssueGroup(root, row);
+            return false;
+          }
+        } as SelectRow}
+      &gt;
+          &lt;TableHeaderColumn isKey dataField=&apos;id&apos; hidden&gt;ID&lt;/TableHeaderColumn&gt;
+          &lt;TableHeaderColumn dataField=&apos;name&apos; dataFormat={this.formatIssuGroup}&gt;&lt;/TableHeaderColumn&gt;
+      &lt;/BootstrapTable&gt;
+    );
+  }
+
+  createExpandComponent(target: IGroup)
+  {
+    if(target.subGroups.length &gt; 0)
+    {
+      return this.createIssueGroupElement(target);
+    }
+    else
+    {
+      return this.createIssueElement(target);
+    }
+  }
+  createNavigationFactory(totalCount:number) : (props:any)=&gt;any
+  {
+    let renderPaginationPanel = (props:any) =&gt; {
+      let curPageNo = props.currPage;
+      let pageStartIndex = props.pageStartIndex;
+      let sizePerPage = props.sizePerPage;
+      let totalPageCount = Math.floor(totalCount / sizePerPage) + 1;
+      return (
+        &lt;div&gt;
+          &lt;div&gt;
+            &lt;FlatButton style={this.navigationButtonStyle} onTouchTap={ () =&gt; props.changePage(1) }&gt;|&amp;lt;&lt;/FlatButton&gt;
+            {
+              Array.apply(null, {length: 5}).map((val:any,index:number)=&gt;{
+                let pageNo = curPageNo + index-2;
+                let disabled = pageNo &lt;= 0 || totalPageCount &lt; pageNo;
+                return (
+                  &lt;FlatButton 
+                    disabled={disabled }
+                    style={this.navigationButtonStyle} 
+                    onTouchTap={ () =&gt; props.changePage(pageNo) }&gt;{disabled?&quot;-&quot;:pageNo}&lt;/FlatButton&gt;);
+              })
+            }
+            &lt;FlatButton style={this.navigationButtonStyle} onTouchTap={ () =&gt; props.changePage(totalPageCount) }&gt;&amp;gt;|&lt;/FlatButton&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+      );
+    }
+    return renderPaginationPanel;
+  }
+
+  createIssueTreeElement(root: IGroup):any{
+    return (
+      &lt;BootstrapTable 
+        data={root.subGroups} 
+        striped
+        expandableRow={ (row)=&gt;true }
+        expandComponent={ this.createExpandComponent }
+        maxHeight={(this.props.hostHeight - 24-64-72-72-128) + &quot;px&quot;}
+        pagination
+        options={{
+          paginationPosition: &apos;top&apos;,
+          sizePerPage:10,
+          expanding: root.expandedChildren,
+          paginationPanel: this.createNavigationFactory(root.subGroups.length)
+          } as Options}
+        selectRow={{
+          mode:&apos;radio&apos;,
+          clickToSelect: true,
+          clickToExpand: true,
+          hideSelectColumn: true,
+          onSelect:(row: any, isSelected: boolean, e: any)=&gt;{
+            this.props.actions.onSelectedIssueGroup(root, row);
+            return false;
+          }
+        } as SelectRow}
+      &gt;
+          &lt;TableHeaderColumn isKey dataField=&apos;id&apos; hidden&gt;ID&lt;/TableHeaderColumn&gt;
+          &lt;TableHeaderColumn dataField=&apos;name&apos; dataFormat={this.formatIssuGroup}&gt;&lt;/TableHeaderColumn&gt;
+      &lt;/BootstrapTable&gt;
+    );
+  }
+  activeToggleButtonStyle:any = {width:&quot;36px&quot;, minWidth:&quot;36px&quot;, margin:&quot;4px&quot;, backgroundColor:thema.palette.clockCircleColor};
+  inactiveToggleButtonStyle:any = {width:&quot;36px&quot;, minWidth:&quot;36px&quot;, margin:&quot;4px&quot;};
+  navigationButtonStyle:any = {width:&quot;36px&quot;, minWidth:&quot;36px&quot;, margin:&quot;4px&quot;};
+
+  createUri(selectedRevisionId:string, issueId:string, diffMode:number, showError:boolean,showWarning:boolean,showSuggestion:boolean,showHint:boolean):LocationDescriptorObject{
+    var search=&quot;&quot;;
+    if(!showError){ search += &apos;error,&apos;; }
+    if(!showWarning){ search += &apos;warning,&apos;; }
+    if(!showSuggestion){ search += &apos;suggestion,&apos;; }
+    if(!showHint){ search += &apos;hint,&apos;; }
+
+    if(search !== &quot;&quot;)
+    {
+      search = &quot;?hidefilter=&quot;+search;
+    }
+    return {
+      pathname:`/issues/${selectedRevisionId}`,
+      search:search
+    };
+  }
+
+  render() {
+    return (
+      &lt;div&gt;
+        &lt;div style={{float: &quot;left&quot;, width: &quot;40%&quot;, height: &quot;100%&quot;}}&gt;
+          &lt;Toolbar style={{backgroundColor:darkBaseTheme.palette.clockCircleColor}} &gt;
+            &lt;ToolbarGroup firstChild={true}&gt;
+              &lt;SelectField
+                floatingLabelText=&quot;Revisions&quot;
+                value={this.props.selectedRevision.id}
+                onChange={(event:any, index:number, value:string)=&gt;this.props.actions.onChangedRevision(index)}
+                style={{height:&quot;72px&quot;}}&gt;
+              {this.props.revisions.revisionInfos.map(revision=&gt;{
+                return (&lt;MenuItem 
+                  key={&quot;Revision_&quot; + revision.id}
+                  value={revision.id} 
+                  primaryText={revision.id} 
+                  rightAvatar={&lt;Badge badgeContent={revision.issueCount} primary={true}/&gt;} /&gt;)
+              })}
+              &lt;/SelectField&gt;
+            &lt;/ToolbarGroup&gt;
+            &lt;ToolbarGroup&gt;
+              &lt;SelectField
+                floatingLabelText=&quot;Issues filter&quot;
+                value={this.props.diffMode}
+                onChange={(event:any, index:number, value:number)=&gt;this.props.actions.onChangeDiffMode(value)}
+                style={{height:&quot;72px&quot;}}
+              &gt;
+                &lt;MenuItem value={0} primaryText=&quot;All issues&quot; /&gt;
+                &lt;MenuItem value={1} primaryText=&quot;Incresed issues from previous revision&quot; /&gt;
+                &lt;MenuItem value={2} primaryText=&quot;Incresed issues from first revision&quot; /&gt;
+                &lt;MenuItem value={3} primaryText=&quot;Fixed issues from previous revision&quot; /&gt;
+                &lt;MenuItem value={4} primaryText=&quot;Fixed issues from first revision&quot; /&gt;
+              &lt;/SelectField&gt;
+            &lt;/ToolbarGroup&gt;
+          &lt;/Toolbar&gt;
+          &lt;Toolbar style={{backgroundColor:darkBaseTheme.palette.clockCircleColor}}&gt;
+            &lt;ToolbarGroup firstChild={true}&gt;
+              &lt;SelectField
+                floatingLabelText=&quot;Issues Group By&quot;
+                value={this.props.issuesGroupBy}
+                onChange={(event:any, index:number, value:number)=&gt;this.props.actions.onChangeIssuesGroupBy(value)}
+                style={{height:&quot;72px&quot;}}
+              &gt;
+                &lt;MenuItem value={1} primaryText=&quot;Directory and File&quot; /&gt;
+                &lt;MenuItem value={2} primaryText=&quot;Issue Type&quot; /&gt;
+                &lt;MenuItem value={3} primaryText=&quot;Issue Category&quot; /&gt;
+              &lt;/SelectField&gt;
+
+              &lt;FlatButton 
+                style={this.props.showErrorIssues?this.activeToggleButtonStyle:this.inactiveToggleButtonStyle} 
+                icon={&lt;ErrorIcon color={red500}/&gt;}
+                onTouchTap={()=&gt;{
+                  this.props.history.push(
+                    this.createUri(this.props.selectedRevision.id, 
+                    this.props.selectedIssueId,
+                    this.props.diffMode,
+                    !this.props.showErrorIssues,
+                    this.props.showWarningIssues,
+                    this.props.showSuggestionIssues,
+                    this.props.showHintIssues));
+
+                    this.props.actions.onToggleShowErrorIssues();
+                  }}/&gt;
+              &lt;FlatButton 
+                style={this.props.showWarningIssues?this.activeToggleButtonStyle:this.inactiveToggleButtonStyle} 
+                icon={&lt;WarningIcon color={lime500}/&gt;}
+                onTouchTap={()=&gt;{
+                  this.props.history.push(
+                    this.createUri(this.props.selectedRevision.id, 
+                    this.props.selectedIssueId,
+                    this.props.diffMode,
+                    this.props.showErrorIssues,
+                    !this.props.showWarningIssues,
+                    this.props.showSuggestionIssues,
+                    this.props.showHintIssues));
+                    
+                    this.props.actions.onToggleShowWarningIssues();
+                  }}/&gt;
+              &lt;FlatButton 
+                style={this.props.showSuggestionIssues?this.activeToggleButtonStyle:this.inactiveToggleButtonStyle} 
+                icon={&lt;InfoIcon color={green500}/&gt;}
+                onTouchTap={()=&gt;{
+                  this.props.history.push(
+                    this.createUri(this.props.selectedRevision.id, 
+                    this.props.selectedIssueId,
+                    this.props.diffMode,
+                    this.props.showErrorIssues,
+                    this.props.showWarningIssues,
+                    !this.props.showSuggestionIssues,
+                    this.props.showHintIssues));
+                    
+                    this.props.actions.onToggleShowSuggestionIssues();
+                  }}/&gt;
+              &lt;FlatButton 
+                style={this.props.showHintIssues?this.activeToggleButtonStyle:this.inactiveToggleButtonStyle} 
+                icon={&lt;InfoIcon color={blue500}/&gt;}
+                onTouchTap={()=&gt;{
+                  this.props.history.push(
+                    this.createUri(this.props.selectedRevision.id, 
+                    this.props.selectedIssueId,
+                    this.props.diffMode,
+                    this.props.showErrorIssues,
+                    this.props.showWarningIssues,
+                    this.props.showSuggestionIssues,
+                    !this.props.showHintIssues));
+                    
+                    this.props.actions.onToggleShowHintIssues();
+                  }}/&gt;
+            &lt;/ToolbarGroup&gt;
+            &lt;ToolbarGroup&gt;
+              &lt;IconButton&gt;
+                &lt;ArrowUpIcon /&gt;
+              &lt;/IconButton&gt;
+              &lt;IconButton&gt;
+                &lt;ArrowDownIcon /&gt;
+              &lt;/IconButton&gt;
+            &lt;/ToolbarGroup&gt;
+          &lt;/Toolbar&gt;
+          {/*&lt;SelectField
+            floatingLabelText=&quot;Diff Base Rev&quot;
+            value={this.props.selectedDiffBaseRevision.id}
+            onChange={(event:any, index:number, value:string)=&gt;this.props.actions.onChangedDiffBaseRevision(index)}
+            fullWidth
+            style={{height:&quot;72px&quot;}}&gt;
+          {this.props.revisions.revisionInfos.map(revision=&gt;{
+            return (&lt;MenuItem 
+              key={&quot;Revision_&quot; + revision.id}
+              value={revision.id} 
+              primaryText={revision.caption} 
+              rightAvatar={&lt;Badge badgeContent={revision.issueCount} primary={true}/&gt;} /&gt;)
+          })}
+          &lt;/SelectField&gt;*/}
+        &lt;Dialog
+          title=&quot;Issue Browser Settings&quot;
+          
+          modal={false}
+          open={false}
+          onRequestClose={()=&gt;{}}
+        &gt;
+
+          &lt;SelectField
+            floatingLabelText=&quot;Diff Type&quot;
+            value={this.props.selectedDiffBaseRevision.id}
+            onChange={(event:any, index:number, value:string)=&gt;this.props.actions.onChangedDiffBaseRevision(index)}
+            fullWidth
+            style={{height:&quot;72px&quot;}}&gt;
+            &lt;MenuItem 
+              primaryText=&quot;none&quot; /&gt;
+            &lt;MenuItem 
+              primaryText=&quot;diff from specified revision&quot; /&gt;
+            &lt;MenuItem 
+              primaryText=&quot;diff from prev revision&quot; /&gt;
+          &lt;/SelectField&gt;
+          &lt;SelectField
+            floatingLabelText=&quot;Diff Base Revision&quot;
+            value={this.props.selectedDiffBaseRevision.id}
+            onChange={(event:any, index:number, value:string)=&gt;this.props.actions.onChangedDiffBaseRevision(index)}
+            fullWidth
+            style={{height:&quot;72px&quot;}}&gt;
+          {this.props.revisions.revisionInfos.map(revision=&gt;{
+            return (&lt;MenuItem 
+              key={&quot;Revision_&quot; + revision.id}
+              value={revision.id} 
+              primaryText={revision.caption} 
+              rightAvatar={&lt;Badge badgeContent={revision.issueCount} primary={true}/&gt;} /&gt;)
+// ReSharper disable TsResolvedFromInaccessibleModule
+          })}
+          &lt;/SelectField&gt;
+        &lt;/Dialog&gt;
+
+          &lt;div style={{height:(this.props.hostHeight - 24-64-72-72) + &quot;px&quot;}}&gt;
+            {this.createIssueTreeElement(this.props.tree)}
+          &lt;/div&gt;
+          &lt;/div&gt;
+        &lt;div style={{float: &quot;none&quot;, width: &quot;auto&quot;, marginLeft: &quot;40%&quot;,height:`${this.props.hostHeight - 64}px`}}&gt;
+          &lt;Iframe url={this.getCodePageUri()} // ReSharper ignore TsResolvedFromInaccessibleModule
+            width=&quot;100%&quot;
+            height=&quot;70%&quot;
+            display=&quot;initial&quot;
+            position=&quot;relative&quot;
+            allowFullScreen /&gt;
+          &lt;Paper height=&quot;200px&quot; style={{float: &quot;bottom&quot;}} &gt;
+            Id:{this.props.selectedIssue.id}&lt;br/&gt;
+            Message:{this.props.selectedIssue.message}&lt;br/&gt;
+            Project:{this.props.selectedIssue.project}&lt;br/&gt;
+            File:{this.props.selectedIssue.file} ({this.props.selectedIssue.line}:{this.props.selectedIssue.column})&lt;br/&gt;
+            Url:&lt;a target=&quot;_blank&quot; href={this.props.selectedIssueType.wikiUrl}&gt;{this.props.selectedIssueType.wikiUrl}&lt;/a&gt;&lt;br/&gt;
+          &lt;/Paper&gt;
+        &lt;/div&gt;
+
+
+      &lt;/div&gt;
+    );
+  }
+  mode:number = 0;
+}
+
+export default muiThemeable()(IssueBrowser);
+
+</pre>
+  <script type="text/javascript" src="../../../js/code.js">
+  </script>
+</body>
+</html>

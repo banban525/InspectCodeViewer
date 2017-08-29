@@ -1,0 +1,70 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Code Viewer</title>
+  <link id="codestyle" rel="stylesheet" type="text/css" href="../../../css/theme.css" media="all" />
+  <script type="text/javascript" src="../../../js/syntaxhighlighter.js"></script>
+  <style>
+    .syntaxhighlighter {
+      overflow-y: hidden !important;
+    }
+  </style>
+</head>
+<body>
+<pre id="code" class="brush: javascript">
+import {IInspectResultsSummary} from &quot;./CommonData&quot;;
+import * as objectAssign from &apos;object-assign&apos;;
+
+export interface ISummaryState{
+  originalData:IInspectResultsSummary;
+  selectedRevisionId?:string;
+}
+
+export class SummaryActionDispatcher
+{
+  dispatch: (action:any)=&gt;any;
+  getState: ()=&gt;ISummaryState;
+  myAjax: (url:string, callback: (data:any)=&gt;void)=&gt;void;
+
+  constructor(dispatch:(action:any)=&gt;any, getState: ()=&gt;ISummaryState, myAjax: (url:string, callback: (data:any)=&gt;void)=&gt;void)
+  {
+    this.dispatch = dispatch;
+    this.getState = getState;
+    this.myAjax = myAjax;
+  }
+  getInitialData(): void{
+    this.myAjax(&quot;./revisions/summary.js&quot;, (revisions:IInspectResultsSummary)=&gt;{
+      this.dispatch( {type:&quot;receivedInitialData&quot;, revisions: revisions});
+    });
+  }
+  onChangeSelectedRevisionId(id:string):void{
+    this.dispatch({type:&apos;onChangeSelectedRevisionId&apos;, id:id});
+  }
+}
+
+
+const initialSummaryState: ISummaryState = {
+  originalData:{
+    revisionInfos:[]
+  }
+};
+
+
+export function SummaryReducer(state: ISummaryState = initialSummaryState, action: any) {
+  switch(action.type)
+  {
+  case &apos;receivedInitialData&apos;:
+    return objectAssign({}, state, {originalData:action.revisions});
+  case &apos;onChangeSelectedRevisionId&apos;:
+    return objectAssign({}, state, {selectedRevisionId:action.id});
+  default:
+    return state;
+  }
+}
+
+</pre>
+  <script type="text/javascript" src="../../../js/code.js">
+  </script>
+</body>
+</html>

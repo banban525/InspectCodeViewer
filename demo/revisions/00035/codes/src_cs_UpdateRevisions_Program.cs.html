@@ -1,0 +1,162 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Code Viewer</title>
+  <link id="codestyle" rel="stylesheet" type="text/css" href="../../../css/theme.css" media="all" />
+  <script type="text/javascript" src="../../../js/syntaxhighlighter.js"></script>
+  <style>
+    .syntaxhighlighter {
+      overflow-y: hidden !important;
+    }
+  </style>
+</head>
+<body>
+<pre id="code" class="brush: csharp">using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading;
+using ParseInspectedCodes;
+
+namespace UpdateRevisions
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            var options = new Options();
+            var isValid = CommandLine.Parser.Default.ParseArgumentsStrict(args, options);
+            if (isValid == false)
+            {
+                return;
+            }
+            var outputBaseDir = options.OutputDirectory;
+
+            if (string.IsNullOrEmpty(outputBaseDir))
+            {
+                var revisionsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, &quot;revisions&quot;);
+                if (Directory.Exists(revisionsPath) == false)
+                {
+                    Directory.CreateDirectory(revisionsPath);
+                    while (Directory.Exists(revisionsPath) == false)
+                    {
+                        Thread.Sleep(1);
+                    }
+                }
+                outputBaseDir = revisionsPath;
+            }
+
+            // Update summary json
+            {
+                var list = new List&lt;RevisionInfo&gt;();
+                InspectResults previous = null;
+                InspectResults first = null;
+                var directories = Directory.GetDirectories(outputBaseDir, &quot;*&quot;, SearchOption.TopDirectoryOnly);
+                foreach (var directory in directories)
+                {
+                    var dataJsFilePath = Path.Combine(directory, &quot;data.js&quot;);
+                    if (File.Exists(dataJsFilePath) == false)
+                    {
+                        continue;
+                    }
+                    InspectResults inspcResults;
+                    using (var reader = new StreamReader(dataJsFilePath, Encoding.UTF8))
+                    {
+                        reader.ReadLine();  //ignore first line.
+                        var json = reader.ReadToEnd();
+                        inspcResults = InspectResults.Deserialize(json);
+                    }
+
+                    var revisionInfo = CreateRevisionInfo(inspcResults, previous, first);
+                    list.Add(revisionInfo);
+
+                    if (first == null)
+                    {
+                        first = inspcResults;
+                    }
+                    previous = inspcResults;
+
+                }
+
+                var summary = new InspectResultsSummary(list.ToArray());
+                var summaryJson = InspectResultsSummary.Serialize(summary);
+                var summaryFilePath = Path.Combine(outputBaseDir, &quot;summary.js&quot;);
+                File.WriteAllText(summaryFilePath, &quot;var __data = \r\n&quot; + summaryJson, Encoding.UTF8);
+            }
+        }
+
+
+        private static RevisionInfo CreateRevisionInfo(InspectResults current, InspectResults previous, InspectResults first)
+        {
+            var currentRevisionInfo = CalcRevisionInfo(current.Issues, current.IssueTypess);
+            
+            if (previous == null || first == null)
+            {
+                return new RevisionInfo(
+                    current.MetaInfo.InspectId,
+                    current.MetaInfo.Caption,
+                    current.MetaInfo.DateTime,
+                    current.MetaInfo.Link,
+                    current.MetaInfo.IssueCount,
+                    currentRevisionInfo,
+                    currentRevisionInfo,
+                    currentRevisionInfo,
+                    RevisionIssuesInfo.Empty,
+                    RevisionIssuesInfo.Empty);
+            }
+
+            var incresedFromPrevious = CalcRevisionInfo(
+                current.Issues.Where(issue =&gt; previous.Issues.All(_ =&gt; _.Id != issue.Id)),
+                current.IssueTypess);
+
+            var incresedFromFirst = CalcRevisionInfo(
+                current.Issues.Where(issue =&gt; first.Issues.All(_ =&gt; _.Id != issue.Id)),
+                current.IssueTypess);
+
+            var fixedFromPrevious = CalcRevisionInfo(
+                previous.Issues.Where(issue =&gt; current.Issues.All(_ =&gt; _.Id != issue.Id)),
+                previous.IssueTypess);
+
+            var fixedFromFirst = CalcRevisionInfo(
+                first.Issues.Where(issue =&gt; current.Issues.All(_ =&gt; _.Id != issue.Id)),
+                first.IssueTypess);
+
+            return new RevisionInfo(
+                current.MetaInfo.InspectId,
+                current.MetaInfo.Caption,
+                current.MetaInfo.DateTime,
+                current.MetaInfo.Link,
+                current.MetaInfo.IssueCount,
+                currentRevisionInfo,
+                incresedFromPrevious,
+                incresedFromFirst,
+                fixedFromPrevious,
+                fixedFromFirst);
+        }
+
+        private static RevisionIssuesInfo CalcRevisionInfo(IEnumerable&lt;Issue&gt; issues, IssueType[] issueTypes)
+        {
+            var groupBy = issues
+                .GroupBy(_ =&gt; issueTypes.First(type =&gt; type.Id == _.TypeId).Severity)
+                .Select(_ =&gt; new { Severity = _.Key, Count = _.Count() })
+                .ToArray();
+
+            var errorCount = groupBy.FirstOrDefault(_ =&gt; _.Severity == &quot;ERROR&quot;)?.Count ?? 0;
+            var warningCount = groupBy.FirstOrDefault(_ =&gt; _.Severity == &quot;WARNING&quot;)?.Count ?? 0;
+            var suggestionCount = groupBy.FirstOrDefault(_ =&gt; _.Severity == &quot;SUGGESTION&quot;)?.Count ?? 0;
+            var hintCount = groupBy.FirstOrDefault(_ =&gt; _.Severity == &quot;HINT&quot;)?.Count ?? 0;
+
+            var currentRevisionInfo = new RevisionIssuesInfo(errorCount, warningCount, suggestionCount, hintCount);
+            return currentRevisionInfo;
+        }
+
+    }
+}
+
+</pre>
+  <script type="text/javascript" src="../../../js/code.js">
+  </script>
+</body>
+</html>

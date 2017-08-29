@@ -1,0 +1,57 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Code Viewer</title>
+  <link id="codestyle" rel="stylesheet" type="text/css" href="../../../css/theme.css" media="all" />
+  <script type="text/javascript" src="../../../js/syntaxhighlighter.js"></script>
+  <style>
+    .syntaxhighlighter {
+      overflow-y: hidden !important;
+    }
+  </style>
+</head>
+<body>
+<pre id="code" class="brush: javascript">const path = require(&quot;path&quot;);
+const webpack = require(&quot;webpack&quot;);
+
+module.exports = {
+  entry: {
+    bundle: &quot;./src_js/Index.tsx&quot;
+  },
+  output: {
+    path: path.join(__dirname, &quot;./bin/js/&quot;),
+    filename: &quot;[name].js&quot;
+  },
+  plugins: [
+    new webpack.ProvidePlugin({
+      $: &quot;jquery&quot;,
+      jQuery: &quot;jquery&quot;
+    }),
+    new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/)
+  ],
+  devtool: &quot;source-map&quot;,
+  resolve: {
+    extensions: [&quot;.ts&quot;, &quot;.tsx&quot;, &quot;.js&quot;]
+  },
+  module: {
+    loaders: [
+      {
+        test: /\.ts[x]?$/,
+        exclude: [&quot;/node_modules/&quot;,&quot;/source/NoahsArkWeb/wwwroot&quot;],
+        loader: &quot;ts-loader&quot;
+      },
+      { test: /\.css$/, loader: &apos;style-loader!css-loader&apos; },
+      { test: /\.svg$/, loader: &apos;url-loader?mimetype=image/svg+xml&apos; },
+      { test: /\.woff$/, loader: &apos;url-loader?mimetype=application/font-woff&apos; },
+      { test: /\.woff2$/, loader: &apos;url-loader?mimetype=application/font-woff&apos; },
+      { test: /\.eot$/, loader: &apos;url-loader?mimetype=application/font-woff&apos; },
+      { test: /\.ttf$/, loader: &apos;url-loader?mimetype=application/font-woff&apos; }
+    ]
+  }
+};
+</pre>
+  <script type="text/javascript" src="../../../js/code.js">
+  </script>
+</body>
+</html>
